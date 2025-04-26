@@ -4,7 +4,6 @@ namespace SocketIoBundle\Repository;
 
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use DoctrineEnhanceBundle\Repository\CommonRepositoryAware;
 use SocketIoBundle\Entity\Message;
 use SocketIoBundle\Entity\Room;
 
@@ -16,8 +15,6 @@ use SocketIoBundle\Entity\Room;
  */
 class MessageRepository extends ServiceEntityRepository
 {
-    use CommonRepositoryAware;
-
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, Message::class);

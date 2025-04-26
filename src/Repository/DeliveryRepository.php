@@ -4,7 +4,6 @@ namespace SocketIoBundle\Repository;
 
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use DoctrineEnhanceBundle\Repository\CommonRepositoryAware;
 use SocketIoBundle\Entity\Delivery;
 use SocketIoBundle\Entity\Message;
 use SocketIoBundle\Entity\Socket;
@@ -18,8 +17,6 @@ use SocketIoBundle\Enum\MessageStatus;
  */
 class DeliveryRepository extends ServiceEntityRepository
 {
-    use CommonRepositoryAware;
-
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, Delivery::class);

@@ -4,7 +4,6 @@ namespace SocketIoBundle\Repository;
 
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use DoctrineEnhanceBundle\Repository\CommonRepositoryAware;
 use SocketIoBundle\Entity\Socket;
 
 /**
@@ -15,8 +14,6 @@ use SocketIoBundle\Entity\Socket;
  */
 class SocketRepository extends ServiceEntityRepository
 {
-    use CommonRepositoryAware;
-
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, Socket::class);
