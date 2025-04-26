@@ -1,0 +1,16 @@
+services:
+  # default configuration for services in *this* file
+  _defaults:
+    autowire: true      # Automatically injects dependencies in your services.
+    autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+
+  SocketIoBundle\Command\:
+    resource: '../../Command/'
+  SocketIoBundle\Controller\:
+    resource: '../../Controller/'
+  SocketIoBundle\EventSubscriber\:
+    resource: '../../EventSubscriber/'
+  SocketIoBundle\Repository\:
+    resource: '../../Repository/'
+  SocketIoBundle\Service\:
+    resource: '../../Service/'
