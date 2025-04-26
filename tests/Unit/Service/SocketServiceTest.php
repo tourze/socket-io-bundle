@@ -158,31 +158,31 @@ class SocketServiceTest extends TestCase
     public function testCheckActiveWithInvalidTransport(): void
     {
         $this->expectException(InvalidTransportException::class);
-        
+
         $socket = new Socket('test-session-id', 'test-socket-id');
         $socket->setTransport('invalid-transport');
-        
+
         $this->socketService->checkActive($socket);
     }
 
     public function testCheckActiveWithInvalidPing(): void
     {
         $this->expectException(InvalidPingException::class);
-        
+
         $socket = new Socket('test-session-id', 'test-socket-id');
         $socket->setLastPingTime(null);
-        
+
         $this->socketService->checkActive($socket);
     }
 
     public function testCheckActiveWithPingTimeout(): void
     {
         $this->expectException(PingTimeoutException::class);
-        
+
         $socket = new Socket('test-session-id', 'test-socket-id');
         $socket->setLastPingTime(new \DateTime('-31 seconds'));
         $socket->setLastDeliverTime(new \DateTime('-61 seconds'));
-        
+
         $this->socketService->checkActive($socket);
     }
 
@@ -193,9 +193,9 @@ class SocketServiceTest extends TestCase
             ->willReturn(null);
 
         $id = $this->socketService->generateUniqueId();
-        
+
         $this->assertIsString($id);
         $this->assertEquals(20, strlen($id));
         $this->assertTrue(ctype_xdigit($id));
     }
-} 
+}

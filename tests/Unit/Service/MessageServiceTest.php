@@ -215,4 +215,4 @@ class MessageServiceTest extends TestCase
 
         $this->messageService->cleanupOldDeliveries($days);
     }
-} 
+}

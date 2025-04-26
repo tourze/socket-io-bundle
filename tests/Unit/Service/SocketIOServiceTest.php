@@ -197,4 +197,4 @@ class SocketIOServiceTest extends TestCase
 
         $this->socketIOService->cleanup();
     }
-} 
+}

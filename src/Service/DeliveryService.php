@@ -73,7 +73,37 @@ class DeliveryService
     public function dequeue(string $roomName, float $since = 0): array
     {
         if (!isset($this->queues[$roomName])) {
-            return [];
+            // 使用实体管理器查询消息
+            $room = $this->roomRepository->findByName($roomName);
+            if (!$room) {
+                return [];
+            }
+            
+            $qb = $this->em->createQueryBuilder();
+            $qb->select('m')
+               ->from(Message::class, 'm')
+               ->innerJoin('m.rooms', 'r')
+               ->where('r.id = :roomId')
+               ->andWhere('m.createTime > :since')
+               ->setParameter('roomId', $room->getId())
+               ->setParameter('since', new \DateTime('@' . intval($since)));
+               
+            $messages = $qb->getQuery()->getResult();
+            
+            $result = [];
+            foreach ($messages as $message) {
+                $result[] = [
+                    'packet' => new SocketPacket(
+                        null, 
+                        $message->getEvent(), 
+                        json_encode(array_merge([$message->getEvent()], $message->getData()))
+                    ),
+                    'senderId' => $message->getSender() ? $message->getSender()->getSocketId() : null,
+                    'timestamp' => $message->getCreateTime()->getTimestamp(),
+                ];
+            }
+            
+            return $result;
         }
 
         // 获取指定时间之后的消息
@@ -88,6 +118,7 @@ class DeliveryService
      */
     public function cleanupQueues(): void
     {
+        // 清理内存中的队列
         $now = microtime(true);
         foreach ($this->queues as $roomName => &$queue) {
             $queue = array_filter(
@@ -95,6 +126,10 @@ class DeliveryService
                 fn ($msg) => ($now - $msg['timestamp']) <= self::QUEUE_CLEANUP_AGE
             );
         }
+        
+        // 清理数据库中的旧投递记录
+        // 这里使用已有的 cleanupOldDeliveries 方法
+        $this->cleanupDeliveries();
     }
 
     /**
