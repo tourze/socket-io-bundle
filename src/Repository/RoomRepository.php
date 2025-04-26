@@ -41,9 +41,9 @@ class RoomRepository extends ServiceEntityRepository
         $rooms = $this->findByClientId($clientId);
         foreach ($rooms as $room) {
             $room->removeClient($clientId);
-            $this->_em->persist($room);
+            $this->getEntityManager()->persist($room);
         }
-        $this->_em->flush();
+        $this->getEntityManager()->flush();
     }
 
     /**
