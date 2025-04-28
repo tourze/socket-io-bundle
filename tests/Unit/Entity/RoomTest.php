@@ -33,7 +33,7 @@ class RoomTest extends TestCase
     public function testGetId(): void
     {
         // 测试 ID 是否是默认值
-        $this->assertEquals('0', $this->room->getId());
+        $this->assertEquals(null, $this->room->getId());
     }
 
     public function testGetSetName(): void
