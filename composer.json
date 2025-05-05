@@ -22,7 +22,7 @@
     "easycorp/easyadmin-bundle": "^4",
     "psr/log": "^3|^2|^1",
     "chrisullyott/php-filesize": "^4.2",
-    "tourze/easy-admin-attribute": "0.0.*",
+    "tourze/easy-admin-attribute": "0.1.*",
     "tourze/doctrine-snowflake-bundle": "0.0.*",
     "tourze/doctrine-timestamp-bundle": "0.0.*",
     "tourze/doctrine-indexed-bundle": "0.0.*"
