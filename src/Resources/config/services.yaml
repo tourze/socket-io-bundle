@@ -14,3 +14,8 @@ services:
     resource: '../../Repository/'
   SocketIoBundle\Service\:
     resource: '../../Service/'
+    
+  # 明确注册 AdminMenu 服务
+  SocketIoBundle\Service\AdminMenu:
+    tags:
+      - { name: 'easy_admin_menu.provider', priority: 10 }
