@@ -5,6 +5,7 @@ namespace SocketIoBundle\Entity;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use SocketIoBundle\Enum\MessageStatus;
+use SocketIoBundle\Repository\DeliveryRepository;
 use Tourze\DoctrineIndexedBundle\Attribute\IndexColumn;
 use Tourze\DoctrineSnowflakeBundle\Service\SnowflakeIdGenerator;
 use Tourze\DoctrineTimestampBundle\Attribute\CreateTimeColumn;
@@ -13,9 +14,9 @@ use Tourze\EasyAdmin\Attribute\Column\ExportColumn;
 use Tourze\EasyAdmin\Attribute\Column\ListColumn;
 use Tourze\EasyAdmin\Attribute\Filter\Filterable;
 
-#[ORM\Entity]
+#[ORM\Entity(repositoryClass: DeliveryRepository::class)]
 #[ORM\Table(name: 'ims_socket_io_delivery')]
-#[ORM\Index(columns: ['status'], name: 'idx_delivery_status')]
+#[ORM\Index(name: 'idx_delivery_status', columns: ['status'])]
 class Delivery
 {
     #[ExportColumn]

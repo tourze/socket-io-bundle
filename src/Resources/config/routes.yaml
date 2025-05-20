@@ -1,3 +1,0 @@
-socket_io_controllers:
-  resource: '../../Controller/'
-  type: attribute
