@@ -38,7 +38,7 @@ class MessageFixtures extends AppFixtures implements DependentFixtureInterface
 
             foreach ($roomIndices as $roomIndex) {
                 /** @var Room $room */
-                $room = $this->getReference(RoomFixtures::ROOM_REFERENCE_PREFIX . $roomIndex, Socket::class);
+                $room = $this->getReference(RoomFixtures::ROOM_REFERENCE_PREFIX . $roomIndex, Room::class);
 
                 // 添加到与发送者的命名空间匹配的房间
                 if ($room->getNamespace() === $sender->getNamespace() || $room->getNamespace() === '/') {
@@ -68,7 +68,7 @@ class MessageFixtures extends AppFixtures implements DependentFixtureInterface
 
             foreach ($roomIndices as $roomIndex) {
                 /** @var Room $room */
-                $room = $this->getReference(RoomFixtures::ROOM_REFERENCE_PREFIX . $roomIndex, Socket::class);
+                $room = $this->getReference(RoomFixtures::ROOM_REFERENCE_PREFIX . $roomIndex, Room::class);
                 $message->addRoom($room);
             }
 

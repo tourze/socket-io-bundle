@@ -6,6 +6,8 @@ services:
 
   SocketIoBundle\Command\:
     resource: '../../Command/'
+  SocketIoBundle\DataFixtures\:
+    resource: '../../DataFixtures/'
   SocketIoBundle\Controller\:
     resource: '../../Controller/'
   SocketIoBundle\EventSubscriber\:
