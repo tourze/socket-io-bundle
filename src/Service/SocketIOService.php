@@ -71,7 +71,7 @@ class SocketIOService
             }
 
             return new Response('Invalid session', Response::HTTP_BAD_REQUEST);
-        } catch  (\Throwable $e) {
+        } catch (\Throwable $e) {
             return new Response($e->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }

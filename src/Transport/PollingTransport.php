@@ -307,7 +307,7 @@ class PollingTransport implements TransportInterface
             }
 
             return $response;
-        } catch  (\Throwable $e) {
+        } catch (\Throwable $e) {
             return new Response(
                 $this->jsonp ? '___eio[' . $this->jsonpIndex . "]('" . $e->getMessage() . "');" : $e->getMessage(),
                 Response::HTTP_BAD_REQUEST

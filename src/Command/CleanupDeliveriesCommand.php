@@ -82,7 +82,7 @@ class CleanupDeliveriesCommand extends Command
                 $count,
                 $duration
             ));
-        } catch  (\Throwable $e) {
+        } catch (\Throwable $e) {
             $output->writeln(sprintf(
                 '<error>[%s] 清理失败: %s</error>',
                 date('Y-m-d H:i:s'),
