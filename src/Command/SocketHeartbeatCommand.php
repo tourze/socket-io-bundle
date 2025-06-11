@@ -126,7 +126,7 @@ class SocketHeartbeatCommand extends Command
                 $messageCleanupCount,
                 $activeSockets,
             ));
-        } catch (\Exception $e) {
+        } catch  (\Throwable $e) {
             $output->writeln(sprintf(
                 '<error>[%s] 心跳检查失败: %s</error>',
                 date('Y-m-d H:i:s'),
