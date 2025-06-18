@@ -3,24 +3,22 @@
 namespace SocketIoBundle\Controller;
 
 use Psr\Log\LoggerInterface;
-use SocketIoBundle\Service\MessageService;
 use SocketIoBundle\Service\SocketIOService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
+#[Route('/socket.io/', name: 'socket_io_endpoint', methods: ['GET', 'POST', 'OPTIONS'])]
 class SocketController extends AbstractController
 {
     public function __construct(
         private readonly SocketIOService $socketIO,
         private readonly LoggerInterface $logger,
-        private readonly MessageService $messageService,
     ) {
     }
 
-    #[Route('/socket.io/', name: 'socket_io_endpoint', methods: ['GET', 'POST', 'OPTIONS'])]
-    public function handle(Request $request): Response
+    public function __invoke(Request $request): Response
     {
         try {
             // 处理CORS预检请求
@@ -36,7 +34,6 @@ class SocketController extends AbstractController
 
             return $response;
         } catch (\Throwable $e) {
-            // dd($e);
             $this->logger->error('SocketIO Exception', [
                 'exception' => $e,
                 'query' => $request->query->all(),
@@ -52,36 +49,6 @@ class SocketController extends AbstractController
             $this->addCorsHeaders($response);
 
             return $response;
-        }
-    }
-
-    #[Route('/socket.io/test', name: 'socket_io_test', methods: ['GET'])]
-    public function test(): Response
-    {
-        $time = microtime(true);
-
-        try {
-            // 发送随机消息
-            $messageData = [
-                $time . '-' . bin2hex(random_bytes(8)),
-                $time . '-' . bin2hex(random_bytes(8)),
-            ];
-            $activeSockets = $this->messageService->broadcast('random2', $messageData);
-
-            return new Response(json_encode([
-                'success' => true,
-                'message' => 'Random message sent to ' . $activeSockets . ' active clients',
-                'data' => $messageData,
-            ]), 200, ['Content-Type' => 'application/json']);
-        } catch (\Throwable $e) {
-            $this->logger->error('Test message sending failed', [
-                'exception' => $e->getMessage(),
-            ]);
-
-            return new Response(json_encode([
-                'success' => false,
-                'error' => $e->getMessage(),
-            ]), 500, ['Content-Type' => 'application/json']);
         }
     }
 

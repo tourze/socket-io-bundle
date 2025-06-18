@@ -1,9 +1,16 @@
 <?php
 
 namespace SocketIoBundle\Enum;
+use Tourze\EnumExtra\Itemable;
+use Tourze\EnumExtra\ItemTrait;
+use Tourze\EnumExtra\Labelable;
+use Tourze\EnumExtra\Selectable;
+use Tourze\EnumExtra\SelectTrait;
 
-enum EnginePacketType: int
+enum EnginePacketType: int implements Itemable, Labelable, Selectable
 {
+    use ItemTrait;
+    use SelectTrait;
     case OPEN = 0;     // non-ws
     case CLOSE = 1;    // non-ws
     case PING = 2;     // non-ws

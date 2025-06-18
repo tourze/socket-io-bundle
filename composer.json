@@ -35,6 +35,7 @@
     "tourze/doctrine-timestamp-bundle": "0.0.*",
     "tourze/easy-admin-attribute": "0.1.*",
     "tourze/easy-admin-menu-bundle": "0.1.*",
+    "tourze/enum-extra": "0.1.*",
     "tourze/symfony-routing-auto-loader-bundle": "0.0.*"
   },
   "require-dev": {

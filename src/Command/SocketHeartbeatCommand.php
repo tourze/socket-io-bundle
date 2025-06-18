@@ -8,13 +8,19 @@ use SocketIoBundle\Repository\SocketRepository;
 use SocketIoBundle\Service\DeliveryService;
 use SocketIoBundle\Service\MessageService;
 use SocketIoBundle\Service\SocketService;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
+#[AsCommand(
+    name: 'socket-io:heartbeat',
+    description: '执行Socket.IO心跳检查和资源清理'
+)]
 class SocketHeartbeatCommand extends Command
 {
+    public const NAME = 'socket-io:heartbeat';
     public function __construct(
         private readonly SocketRepository $socketRepository,
         private readonly MessageRepository $messageRepository,
@@ -27,9 +33,7 @@ class SocketHeartbeatCommand extends Command
 
     protected function configure(): void
     {
-        $this->setName('socket-io:heartbeat')
-            ->setDescription('执行Socket.IO心跳检查和资源清理')
-            ->addOption(
+        $this->addOption(
                 'daemon',
                 'd',
                 InputOption::VALUE_NONE,
@@ -49,7 +53,7 @@ class SocketHeartbeatCommand extends Command
         $isDaemon = $input->getOption('daemon');
         $interval = (int) $input->getOption('interval');
 
-        if ($isDaemon) {
+        if ((bool) $isDaemon) {
             $output->writeln(sprintf(
                 '<info>心跳检查守护进程已启动 (间隔: %d ms)</info>',
                 $interval

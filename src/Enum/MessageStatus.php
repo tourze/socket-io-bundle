@@ -1,9 +1,16 @@
 <?php
 
 namespace SocketIoBundle\Enum;
+use Tourze\EnumExtra\Itemable;
+use Tourze\EnumExtra\ItemTrait;
+use Tourze\EnumExtra\Labelable;
+use Tourze\EnumExtra\Selectable;
+use Tourze\EnumExtra\SelectTrait;
 
-enum MessageStatus: int
+enum MessageStatus: int implements Itemable, Labelable, Selectable
 {
+    use ItemTrait;
+    use SelectTrait;
     case PENDING = 0;
     case DELIVERED = 1;
     case FAILED = 2;

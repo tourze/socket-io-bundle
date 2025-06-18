@@ -3,13 +3,19 @@
 namespace SocketIoBundle\Command;
 
 use SocketIoBundle\Service\DeliveryService;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
+#[AsCommand(
+    name: 'socket:cleanup-deliveries',
+    description: '清理过期的消息投递记录'
+)]
 class CleanupDeliveriesCommand extends Command
 {
+    public const NAME = 'socket:cleanup-deliveries';
     public function __construct(
         private readonly DeliveryService $deliveryService,
     ) {
@@ -18,9 +24,7 @@ class CleanupDeliveriesCommand extends Command
 
     protected function configure(): void
     {
-        $this->setName('socket:cleanup-deliveries')
-            ->setDescription('清理过期的消息投递记录')
-            ->addOption(
+        $this->addOption(
                 'days',
                 'd',
                 InputOption::VALUE_OPTIONAL,
@@ -48,7 +52,7 @@ class CleanupDeliveriesCommand extends Command
         $isDaemon = $input->getOption('daemon');
         $interval = (int) $input->getOption('interval');
 
-        if ($isDaemon) {
+        if ((bool) $isDaemon) {
             $output->writeln(sprintf(
                 '<info>清理守护进程已启动 (间隔: %d 秒, 保留 %d 天)</info>',
                 $interval,

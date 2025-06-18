@@ -8,17 +8,13 @@ use SocketIoBundle\Enum\MessageStatus;
 use SocketIoBundle\Repository\DeliveryRepository;
 use Tourze\DoctrineSnowflakeBundle\Service\SnowflakeIdGenerator;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
-use Tourze\EasyAdmin\Attribute\Column\ExportColumn;
-use Tourze\EasyAdmin\Attribute\Column\ListColumn;
 
 #[ORM\Entity(repositoryClass: DeliveryRepository::class)]
-#[ORM\Table(name: 'ims_socket_io_delivery')]
+#[ORM\Table(name: 'ims_socket_io_delivery', options: ['comment' => 'Socket.IO消息投递记录表'])]
 #[ORM\Index(name: 'idx_delivery_status', columns: ['status'])]
-class Delivery
+class Delivery implements \Stringable
 {
     use TimestampableAware;
-    #[ExportColumn]
-    #[ListColumn(order: -1, sorter: true)]
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
     #[ORM\CustomIdGenerator(SnowflakeIdGenerator::class)]
@@ -33,17 +29,17 @@ class Delivery
     #[ORM\JoinColumn(name: 'message_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
     private Message $message;
 
-    #[ORM\Column(type: 'integer', enumType: MessageStatus::class)]
+    #[ORM\Column(type: Types::INTEGER, enumType: MessageStatus::class, options: ['comment' => '投递状态'])]
     private MessageStatus $status = MessageStatus::PENDING;
 
-    #[ORM\Column(type: 'text', nullable: true)]
+    #[ORM\Column(type: Types::TEXT, nullable: true, options: ['comment' => '错误信息'])]
     private ?string $error = null;
 
-    #[ORM\Column(type: 'integer')]
+    #[ORM\Column(type: Types::INTEGER, options: ['comment' => '重试次数'])]
     private int $retries = 0;
 
-    #[ORM\Column(type: 'datetime', nullable: true)]
-    private ?\DateTime $deliveredAt = null;
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '投递时间'])]
+    private ?\DateTimeImmutable $deliveredAt = null;
 
     public function getId(): ?string
     {
@@ -83,7 +79,7 @@ class Delivery
     {
         $this->status = $status;
         if (MessageStatus::DELIVERED === $status) {
-            $this->deliveredAt = new \DateTime();
+            $this->deliveredAt = new \DateTimeImmutable();
         }
 
         return $this;
@@ -111,7 +107,9 @@ class Delivery
         ++$this->retries;
 
         return $this;
-    }public function getDeliveredAt(): ?\DateTime
+    }
+
+    public function getDeliveredAt(): ?\DateTimeImmutable
     {
         return $this->deliveredAt;
     }
@@ -129,5 +127,10 @@ class Delivery
     public function isPending(): bool
     {
         return MessageStatus::PENDING === $this->status;
+    }
+
+    public function __toString(): string
+    {
+        return sprintf('Delivery[%s:%s]', $this->id ?? 'new', $this->status->value);
     }
 }

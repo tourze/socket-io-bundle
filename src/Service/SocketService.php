@@ -246,7 +246,7 @@ class SocketService
         // 处理事件
         if (SocketPacketType::EVENT === $packet->getType()) {
             $data = json_decode($packet->getData(), true);
-            if (!$data) {
+            if (!(bool) $data) {
                 return;
             }
             $event = array_shift($data);
