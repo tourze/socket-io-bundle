@@ -14,7 +14,7 @@ use Tourze\DoctrineTimestampBundle\Attribute\CreateTimeColumn;
 #[ORM\Entity(repositoryClass: MessageRepository::class)]
 #[ORM\Table(name: 'ims_socket_io_message')]
 #[ORM\Index(name: 'idx_message_event', columns: ['event'])]
-class Message
+class Message implements \Stringable
 {
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
@@ -44,8 +44,8 @@ class Message
 
     #[IndexColumn]
     #[CreateTimeColumn]
-    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true, options: ['comment' => '创建时间'])]
-    private ?\DateTimeInterface $createTime = null;
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '创建时间'])]
+    private ?\DateTimeImmutable $createTime = null;
 
     public function __construct()
     {
@@ -58,14 +58,14 @@ class Message
         return $this->id;
     }
 
-    public function setCreateTime(?\DateTimeInterface $createdAt): self
+    public function setCreateTime(?\DateTimeImmutable $createdAt): self
     {
         $this->createTime = $createdAt;
 
         return $this;
     }
 
-    public function getCreateTime(): ?\DateTimeInterface
+    public function getCreateTime(): ?\DateTimeImmutableImmutable
     {
         return $this->createTime;
     }
@@ -159,5 +159,10 @@ class Message
         $this->metadata = $metadata;
 
         return $this;
+    }
+
+    public function __toString(): string
+    {
+        return sprintf('%s #%s', 'Message', $this->id ?? 'new');
     }
 }

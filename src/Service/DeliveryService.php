@@ -86,7 +86,7 @@ class DeliveryService
                ->where('r.id = :roomId')
                ->andWhere('m.createTime > :since')
                ->setParameter('roomId', $room->getId())
-               ->setParameter('since', new \DateTime('@' . intval($since)));
+               ->setParameter('since', new \DateTimeImmutable('@' . intval($since)));
                
             $messages = $qb->getQuery()->getResult();
             

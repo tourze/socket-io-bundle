@@ -199,7 +199,7 @@ class SocketService
             throw new InvalidPingException($socket->getSessionId());
         }
 
-        $now = new \DateTime();
+        $now = new \DateTimeImmutable();
         $lastDeliverTime = $socket->getLastDeliverTime();
 
         // 检查最后一次 ping 时间和投递时间

@@ -13,7 +13,7 @@ use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 #[ORM\Entity(repositoryClass: RoomRepository::class)]
 #[ORM\Table(name: 'ims_socket_io_room')]
 #[ORM\Index(name: 'idx_room_name', columns: ['name'])]
-class Room
+class Room implements \Stringable
 {
     use TimestampableAware;
     #[ORM\Id]
@@ -135,4 +135,10 @@ class Room
         }
 
         return $this;
-    }}
+    }
+
+    public function __toString(): string
+    {
+        return sprintf('%s #%s', 'Room', $this->id ?? 'new');
+    }
+}

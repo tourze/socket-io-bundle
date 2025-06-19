@@ -13,7 +13,7 @@ use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 
 #[ORM\Entity(repositoryClass: SocketRepository::class)]
 #[ORM\Table(name: 'ims_socket_io_connection')]
-class Socket
+class Socket implements \Stringable
 {
     use TimestampableAware;
     #[ORM\Id]
@@ -40,13 +40,13 @@ class Socket
     private ?array $handshake = null;
 
     #[ORM\Column(type: 'datetime', nullable: true)]
-    private ?\DateTime $lastPingTime = null;
+    private ?\DateTimeImmutable $lastPingTime = null;
 
     #[ORM\Column(type: 'datetime', nullable: true)]
-    private ?\DateTime $lastDeliverTime = null;
+    private ?\DateTimeImmutable $lastDeliverTime = null;
 
     #[ORM\Column(type: 'datetime', nullable: true)]
-    private ?\DateTime $lastActiveTime = null;
+    private ?\DateTimeImmutable $lastActiveTime = null;
 
     #[ORM\Column(type: 'boolean')]
     private bool $connected = true;
@@ -78,8 +78,8 @@ class Socket
         $this->socketId = $socketId;
         $this->rooms = new ArrayCollection();
         $this->deliveries = new ArrayCollection();
-        $this->lastPingTime = new \DateTime();
-        $this->lastActiveTime = new \DateTime();
+        $this->lastPingTime = new \DateTimeImmutable();
+        $this->lastActiveTime = new \DateTimeImmutable();
     }
 
     public function getId(): ?string
@@ -133,12 +133,12 @@ class Socket
         return $this;
     }
 
-    public function getLastPingTime(): ?\DateTime
+    public function getLastPingTime(): ?\DateTimeImmutable
     {
         return $this->lastPingTime;
     }
 
-    public function setLastPingTime(?\DateTime $lastPingTime): self
+    public function setLastPingTime(?\DateTimeImmutable $lastPingTime): self
     {
         $this->lastPingTime = $lastPingTime;
 
@@ -147,20 +147,20 @@ class Socket
 
     public function updatePingTime(): self
     {
-        $this->lastPingTime = new \DateTime();
+        $this->lastPingTime = new \DateTimeImmutable();
         $this->updateLastActiveTime();
 
         return $this;
     }
 
-    public function getLastActiveTime(): ?\DateTime
+    public function getLastActiveTime(): ?\DateTimeImmutable
     {
         return $this->lastActiveTime;
     }
 
     public function updateLastActiveTime(): self
     {
-        $this->lastActiveTime = new \DateTime();
+        $this->lastActiveTime = new \DateTimeImmutable();
 
         return $this;
     }
@@ -270,12 +270,12 @@ class Socket
         return $this;
     }
 
-    public function getLastDeliverTime(): ?\DateTime
+    public function getLastDeliverTime(): ?\DateTimeImmutable
     {
         return $this->lastDeliverTime;
     }
 
-    public function setLastDeliverTime(?\DateTime $lastDeliverTime): self
+    public function setLastDeliverTime(?\DateTimeImmutable $lastDeliverTime): self
     {
         $this->lastDeliverTime = $lastDeliverTime;
 
@@ -284,8 +284,14 @@ class Socket
 
     public function updateDeliverTime(): self
     {
-        $this->lastDeliverTime = new \DateTime();
+        $this->lastDeliverTime = new \DateTimeImmutable();
         $this->updateLastActiveTime();
 
         return $this;
-    }}
+    }
+
+    public function __toString(): string
+    {
+        return sprintf('%s #%s', 'Socket', $this->id ?? 'new');
+    }
+}
