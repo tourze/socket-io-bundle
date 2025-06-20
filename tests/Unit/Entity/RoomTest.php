@@ -136,7 +136,7 @@ class RoomTest extends TestCase
         // 测试 getCreateTime 和 setCreateTime 方法
         $this->assertNull($this->room->getCreateTime());
 
-        $now = new \DateTime();
+        $now = new \DateTimeImmutable();
         $this->room->setCreateTime($now);
         $this->assertSame($now, $this->room->getCreateTime());
     }
@@ -146,7 +146,7 @@ class RoomTest extends TestCase
         // 测试 getUpdateTime 和 setUpdateTime 方法
         $this->assertNull($this->room->getUpdateTime());
 
-        $now = new \DateTime();
+        $now = new \DateTimeImmutable();
         $this->room->setUpdateTime($now);
         $this->assertSame($now, $this->room->getUpdateTime());
     }

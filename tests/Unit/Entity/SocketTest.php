@@ -211,7 +211,7 @@ class SocketTest extends TestCase
     {
         $this->assertNull($this->socket->getCreateTime());
 
-        $now = new \DateTime();
+        $now = new \DateTimeImmutable();
         $this->socket->setCreateTime($now);
         $this->assertSame($now, $this->socket->getCreateTime());
     }
@@ -220,7 +220,7 @@ class SocketTest extends TestCase
     {
         $this->assertNull($this->socket->getUpdateTime());
 
-        $now = new \DateTime();
+        $now = new \DateTimeImmutable();
         $this->socket->setUpdateTime($now);
         $this->assertSame($now, $this->socket->getUpdateTime());
     }

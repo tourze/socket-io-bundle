@@ -112,7 +112,7 @@ class DeliveryTest extends TestCase
     {
         $this->assertNull($this->delivery->getCreateTime());
 
-        $now = new \DateTime();
+        $now = new \DateTimeImmutable();
         $this->delivery->setCreateTime($now);
         $this->assertSame($now, $this->delivery->getCreateTime());
     }
@@ -121,7 +121,7 @@ class DeliveryTest extends TestCase
     {
         $this->assertNull($this->delivery->getUpdateTime());
 
-        $now = new \DateTime();
+        $now = new \DateTimeImmutable();
         $this->delivery->setUpdateTime($now);
         $this->assertSame($now, $this->delivery->getUpdateTime());
     }
