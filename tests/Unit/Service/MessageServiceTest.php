@@ -137,10 +137,15 @@ class MessageServiceTest extends TestCase
     public function testGetPendingDeliveries(): void
     {
         $socket = new Socket('test-session-id', 'test-socket-id');
-        $expectedDeliveries = [
-            new Delivery(new Message(), $socket),
-            new Delivery(new Message(), $socket)
-        ];
+        $delivery1 = new Delivery();
+        $delivery1->setSocket($socket);
+        $delivery1->setMessage(new Message());
+        
+        $delivery2 = new Delivery();
+        $delivery2->setSocket($socket);
+        $delivery2->setMessage(new Message());
+        
+        $expectedDeliveries = [$delivery1, $delivery2];
 
         $this->deliveryRepository->expects($this->once())
             ->method('findPendingDeliveries')
@@ -153,7 +158,9 @@ class MessageServiceTest extends TestCase
 
     public function testMarkDelivered(): void
     {
-        $delivery = new Delivery(new Message(), new Socket('test-session-id', 'test-socket-id'));
+        $delivery = new Delivery();
+        $delivery->setMessage(new Message());
+        $delivery->setSocket(new Socket('test-session-id', 'test-socket-id'));
 
         $this->em->expects($this->once())
             ->method('flush');
@@ -164,7 +171,9 @@ class MessageServiceTest extends TestCase
 
     public function testMarkFailed(): void
     {
-        $delivery = new Delivery(new Message(), new Socket('test-session-id', 'test-socket-id'));
+        $delivery = new Delivery();
+        $delivery->setMessage(new Message());
+        $delivery->setSocket(new Socket('test-session-id', 'test-socket-id'));
         $error = 'Test error';
 
         $this->em->expects($this->once())

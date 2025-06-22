@@ -30,11 +30,10 @@ class DeliveryCrudControllerTest extends TestCase
         
         $this->assertTrue($reflection->hasMethod('__construct'));
         $constructor = $reflection->getMethod('__construct');
-        $this->assertSame(2, $constructor->getNumberOfParameters());
+        $this->assertSame(1, $constructor->getNumberOfParameters());
         
         $parameters = $constructor->getParameters();
         $this->assertSame('entityManager', $parameters[0]->getName());
-        $this->assertSame('adminUrlGenerator', $parameters[1]->getName());
     }
 
     public function test_configure_methods_exist_and_are_public(): void
@@ -61,7 +60,7 @@ class DeliveryCrudControllerTest extends TestCase
         
         $returnType = $reflection->getReturnType();
         $this->assertNotNull($returnType);
-        $this->assertSame('EasyCorp\Bundle\EasyAdminBundle\Config\Crud', $returnType->getName());
+        $this->assertSame('EasyCorp\Bundle\EasyAdminBundle\Config\Crud', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
     }
 
     public function test_create_index_query_builder_method_exists(): void
@@ -125,7 +124,7 @@ class DeliveryCrudControllerTest extends TestCase
         
         $returnType = $reflection->getReturnType();
         $this->assertNotNull($returnType);
-        $this->assertSame('EasyCorp\Bundle\EasyAdminBundle\Config\Actions', $returnType->getName());
+        $this->assertSame('EasyCorp\Bundle\EasyAdminBundle\Config\Actions', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
     }
 
     public function test_configure_filters_method_returns_correct_type(): void
@@ -134,7 +133,7 @@ class DeliveryCrudControllerTest extends TestCase
         
         $returnType = $reflection->getReturnType();
         $this->assertNotNull($returnType);
-        $this->assertSame('EasyCorp\Bundle\EasyAdminBundle\Config\Filters', $returnType->getName());
+        $this->assertSame('EasyCorp\Bundle\EasyAdminBundle\Config\Filters', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
     }
 
     public function test_configure_fields_method_returns_iterable(): void
@@ -143,7 +142,7 @@ class DeliveryCrudControllerTest extends TestCase
         
         $returnType = $reflection->getReturnType();
         $this->assertNotNull($returnType);
-        $this->assertSame('iterable', $returnType->getName());
+        $this->assertSame('iterable', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
     }
 
     public function test_custom_action_methods_have_correct_signatures(): void
@@ -160,7 +159,7 @@ class DeliveryCrudControllerTest extends TestCase
                 
                 $returnType = $method->getReturnType();
                 $this->assertNotNull($returnType, "Method {$methodName} should have return type");
-                $this->assertSame('Symfony\Component\HttpFoundation\Response', $returnType->getName(), "Method {$methodName} should return Response");
+                $this->assertSame('Symfony\Component\HttpFoundation\Response', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType, "Method {$methodName} should return Response");
             }
         }
     }
@@ -170,12 +169,8 @@ class DeliveryCrudControllerTest extends TestCase
         $reflection = new \ReflectionClass(DeliveryCrudController::class);
         
         $this->assertTrue($reflection->hasProperty('entityManager'), 'Controller should have entityManager property');
-        $this->assertTrue($reflection->hasProperty('adminUrlGenerator'), 'Controller should have adminUrlGenerator property');
         
         $entityManagerProperty = $reflection->getProperty('entityManager');
         $this->assertTrue($entityManagerProperty->isPrivate(), 'entityManager property should be private');
-        
-        $adminUrlGeneratorProperty = $reflection->getProperty('adminUrlGenerator');
-        $this->assertTrue($adminUrlGeneratorProperty->isPrivate(), 'adminUrlGenerator property should be private');
     }
 } 

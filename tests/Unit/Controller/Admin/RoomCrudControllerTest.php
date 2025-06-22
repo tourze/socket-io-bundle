@@ -30,11 +30,10 @@ class RoomCrudControllerTest extends TestCase
         
         $this->assertTrue($reflection->hasMethod('__construct'));
         $constructor = $reflection->getMethod('__construct');
-        $this->assertSame(2, $constructor->getNumberOfParameters());
+        $this->assertSame(1, $constructor->getNumberOfParameters());
         
         $parameters = $constructor->getParameters();
-        $this->assertSame('entityManager', $parameters[0]->getName());
-        $this->assertSame('adminUrlGenerator', $parameters[1]->getName());
+        $this->assertSame('adminUrlGenerator', $parameters[0]->getName());
     }
 
     public function test_configure_methods_exist_and_are_public(): void
@@ -62,7 +61,7 @@ class RoomCrudControllerTest extends TestCase
         
         $returnType = $reflection->getReturnType();
         $this->assertNotNull($returnType);
-        $this->assertSame('EasyCorp\Bundle\EasyAdminBundle\Config\Crud', $returnType->getName());
+        $this->assertSame('EasyCorp\Bundle\EasyAdminBundle\Config\Crud', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
     }
 
     public function test_configure_fields_method_signature(): void
@@ -75,7 +74,7 @@ class RoomCrudControllerTest extends TestCase
         
         $returnType = $reflection->getReturnType();
         $this->assertNotNull($returnType);
-        $this->assertSame('iterable', $returnType->getName());
+        $this->assertSame('iterable', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
     }
 
     public function test_configure_filters_method_signature(): void
@@ -88,7 +87,7 @@ class RoomCrudControllerTest extends TestCase
         
         $returnType = $reflection->getReturnType();
         $this->assertNotNull($returnType);
-        $this->assertSame('EasyCorp\Bundle\EasyAdminBundle\Config\Filters', $returnType->getName());
+        $this->assertSame('EasyCorp\Bundle\EasyAdminBundle\Config\Filters', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
     }
 
     public function test_configure_actions_method_signature(): void
@@ -101,7 +100,7 @@ class RoomCrudControllerTest extends TestCase
         
         $returnType = $reflection->getReturnType();
         $this->assertNotNull($returnType);
-        $this->assertSame('EasyCorp\Bundle\EasyAdminBundle\Config\Actions', $returnType->getName());
+        $this->assertSame('EasyCorp\Bundle\EasyAdminBundle\Config\Actions', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
     }
 
     public function test_create_index_query_builder_method_exists(): void
@@ -188,19 +187,22 @@ class RoomCrudControllerTest extends TestCase
         $viewSocketsMethod = $reflection->getMethod('viewSockets');
         $this->assertSame(1, $viewSocketsMethod->getNumberOfParameters());
         $this->assertSame('context', $viewSocketsMethod->getParameters()[0]->getName());
-        $this->assertSame('Symfony\Component\HttpFoundation\Response', $viewSocketsMethod->getReturnType()->getName());
+        $returnType = $viewSocketsMethod->getReturnType();
+        $this->assertSame('Symfony\Component\HttpFoundation\Response', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
         
         // viewMessages method
         $viewMessagesMethod = $reflection->getMethod('viewMessages');
         $this->assertSame(1, $viewMessagesMethod->getNumberOfParameters());
         $this->assertSame('context', $viewMessagesMethod->getParameters()[0]->getName());
-        $this->assertSame('Symfony\Component\HttpFoundation\Response', $viewMessagesMethod->getReturnType()->getName());
+        $returnType = $viewMessagesMethod->getReturnType();
+        $this->assertSame('Symfony\Component\HttpFoundation\Response', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
         
         // broadcastMessageForm method
         $broadcastMethod = $reflection->getMethod('broadcastMessageForm');
         $this->assertSame(1, $broadcastMethod->getNumberOfParameters());
         $this->assertSame('context', $broadcastMethod->getParameters()[0]->getName());
-        $this->assertSame('Symfony\Component\HttpFoundation\Response', $broadcastMethod->getReturnType()->getName());
+        $returnType = $broadcastMethod->getReturnType();
+        $this->assertSame('Symfony\Component\HttpFoundation\Response', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
     }
 
     public function test_controller_implements_admin_action_pattern(): void

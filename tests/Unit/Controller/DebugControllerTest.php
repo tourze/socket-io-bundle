@@ -35,55 +35,63 @@ class DebugControllerTest extends TestCase
         $this->assertInstanceOf(AbstractController::class, $this->controller);
     }
 
-    public function test_debug_method_exists(): void
-    {
-        $this->assertTrue(method_exists($this->controller, 'debug'));
-    }
-
-    public function test_debug_method_is_public(): void
-    {
-        $reflection = new \ReflectionMethod($this->controller, 'debug');
-        $this->assertTrue($reflection->isPublic());
-    }
-
-    public function test_debug_method_returns_response(): void
+    public function test_invoke_method_can_be_called(): void
     {
         $this->twig->expects($this->once())
             ->method('render')
             ->with('@SocketIo/debug.html.twig', [])
             ->willReturn('<html><body>Debug Page</body></html>');
 
-        $response = $this->controller->debug();
+        $response = $this->controller->__invoke();
+        
+        $this->assertInstanceOf(Response::class, $response);
+        $this->assertSame('<html><body>Debug Page</body></html>', $response->getContent());
+    }
+
+    public function test_invoke_method_is_public(): void
+    {
+        $reflection = new \ReflectionMethod($this->controller, '__invoke');
+        $this->assertTrue($reflection->isPublic());
+    }
+
+    public function test_invoke_method_returns_response(): void
+    {
+        $this->twig->expects($this->once())
+            ->method('render')
+            ->with('@SocketIo/debug.html.twig', [])
+            ->willReturn('<html><body>Debug Page</body></html>');
+
+        $response = $this->controller->__invoke();
 
         $this->assertInstanceOf(Response::class, $response);
         $this->assertSame('<html><body>Debug Page</body></html>', $response->getContent());
     }
 
-    public function test_debug_method_renders_correct_template(): void
+    public function test_invoke_method_renders_correct_template(): void
     {
         $this->twig->expects($this->once())
             ->method('render')
             ->with('@SocketIo/debug.html.twig', [])
             ->willReturn('debug content');
 
-        $this->controller->debug();
+        $this->controller->__invoke();
     }
 
-    public function test_debug_method_returns_200_status(): void
+    public function test_invoke_method_returns_200_status(): void
     {
         $this->twig->expects($this->once())
             ->method('render')
             ->with('@SocketIo/debug.html.twig', [])
             ->willReturn('debug content');
 
-        $response = $this->controller->debug();
+        $response = $this->controller->__invoke();
 
         $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
     }
 
-    public function test_debug_method_has_route_attribute(): void
+    public function test_invoke_method_has_route_attribute(): void
     {
-        $reflection = new \ReflectionMethod($this->controller, 'debug');
+        $reflection = new \ReflectionMethod($this->controller, '__invoke');
         $attributes = $reflection->getAttributes();
         
         $this->assertNotEmpty($attributes);
@@ -113,16 +121,16 @@ class DebugControllerTest extends TestCase
         $this->assertFalse($reflection->isFinal());
     }
 
-    public function test_debug_method_signature(): void
+    public function test_invoke_method_signature(): void
     {
-        $reflection = new \ReflectionMethod($this->controller, 'debug');
+        $reflection = new \ReflectionMethod($this->controller, '__invoke');
         
-        $this->assertSame('debug', $reflection->getName());
+        $this->assertSame('__invoke', $reflection->getName());
         $this->assertSame(0, $reflection->getNumberOfParameters());
         $this->assertSame(0, $reflection->getNumberOfRequiredParameters());
         
         $returnType = $reflection->getReturnType();
         $this->assertNotNull($returnType);
-        $this->assertSame('Symfony\Component\HttpFoundation\Response', $returnType->getName());
+        $this->assertSame('Symfony\Component\HttpFoundation\Response', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
     }
 } 

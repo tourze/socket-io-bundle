@@ -428,7 +428,6 @@ class RoomServiceTest extends TestCase
         $result = $this->roomService->getRoomMembers($roomName, $namespace);
 
         // 断言
-        $this->assertIsArray($result);
         $this->assertEmpty($result);
     }
 
@@ -476,7 +475,6 @@ class RoomServiceTest extends TestCase
         $result = $this->roomService->getSocketRooms($socket);
 
         // 断言
-        $this->assertIsArray($result);
         $this->assertCount(2, $result);
         $this->assertEquals(['room1', 'room2'], $result);
     }

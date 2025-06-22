@@ -4,7 +4,6 @@ namespace SocketIoBundle\Tests\Unit\Repository;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
-use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -14,17 +13,14 @@ use SocketIoBundle\Repository\RoomRepository;
 
 class RoomRepositoryTest extends TestCase
 {
-    private RoomRepository $roomRepository;
     private ManagerRegistry|MockObject $registry;
     private EntityManagerInterface|MockObject $entityManager;
-    private QueryBuilder|MockObject $queryBuilder;
     private ClassMetadata|MockObject $classMetadata;
 
     protected function setUp(): void
     {
         $this->registry = $this->createMock(ManagerRegistry::class);
         $this->entityManager = $this->createMock(EntityManagerInterface::class);
-        $this->queryBuilder = $this->createMock(QueryBuilder::class);
         $this->classMetadata = $this->createMock(ClassMetadata::class);
 
         // 设置实体管理器
@@ -43,38 +39,7 @@ class RoomRepositoryTest extends TestCase
             ->method('getName')
             ->willReturn(Room::class);
 
-        // 创建存储库
-        $this->roomRepository = new class($this->registry, $this->entityManager) extends RoomRepository {
-            private EntityManagerInterface $mockedEntityManager;
-
-            public function __construct(ManagerRegistry $registry, EntityManagerInterface $entityManager)
-            {
-                parent::__construct($registry);
-                $this->mockedEntityManager = $entityManager;
-            }
-
-            public function getEntityManager(): EntityManagerInterface
-            {
-                return $this->mockedEntityManager;
-            }
-
-            // 覆盖可能导致问题的方法
-            public function findOneBy(array $criteria, ?array $orderBy = null): ?object
-            {
-                return match (true) {
-                    isset($criteria['name']) && isset($criteria['namespace']) =>
-                    $this->findByNameAndNamespace($criteria['name'], $criteria['namespace']),
-                    isset($criteria['name']) =>
-                    $this->findByName($criteria['name']),
-                    default => null,
-                };
-            }
-
-            public function findBy(array $criteria, ?array $orderBy = null, $limit = null, $offset = null): array
-            {
-                return [];
-            }
-        };
+        // roomRepository 将在每个测试方法中创建
     }
 
     public function testFindByName(): void
@@ -124,9 +89,21 @@ class RoomRepositoryTest extends TestCase
 
     public function testRemoveClientFromAllRooms(): void
     {
-        // 只测试方法是否存在
-        $repository = $this->createMock(RoomRepository::class);
-        $this->assertTrue(method_exists($repository, 'removeClientFromAllRooms'));
+        $clientId = 'test-client-id';
+        
+        // 创建模拟仓库，直接模拟方法调用
+        $repository = $this->getMockBuilder(RoomRepository::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['removeClientFromAllRooms'])
+            ->getMock();
+        
+        // 验证方法被正确调用
+        $repository->expects($this->once())
+            ->method('removeClientFromAllRooms')
+            ->with($clientId);
+
+        // 执行测试
+        $repository->removeClientFromAllRooms($clientId);
     }
 
     public function testFindByNameAndNamespace(): void

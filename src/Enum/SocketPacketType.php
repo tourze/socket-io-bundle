@@ -19,7 +19,7 @@ enum SocketPacketType: int implements Itemable, Labelable, Selectable
     case BINARY_EVENT = 5;
     case BINARY_ACK = 6;
 
-    public function label(): string
+    public function getLabel(): string
     {
         return match ($this) {
             self::CONNECT => 'Connect',
@@ -30,6 +30,14 @@ enum SocketPacketType: int implements Itemable, Labelable, Selectable
             self::BINARY_EVENT => 'Binary Event',
             self::BINARY_ACK => 'Binary Acknowledgement',
         };
+    }
+
+    /**
+     * @deprecated Use getLabel() instead
+     */
+    public function label(): string
+    {
+        return $this->getLabel();
     }
 
     public function isBinary(): bool

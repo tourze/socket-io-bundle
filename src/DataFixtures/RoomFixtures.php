@@ -72,7 +72,7 @@ class RoomFixtures extends AppFixtures implements DependentFixtureInterface
 
         // 设置创建时间
         $createdAt = $this->faker->dateTimeBetween('-60 days', '-1 day');
-        $room->setCreateTime($createdAt);
+        $room->setCreateTime(\DateTimeImmutable::createFromMutable($createdAt));
 
         return $room;
     }
@@ -86,7 +86,7 @@ class RoomFixtures extends AppFixtures implements DependentFixtureInterface
             $name .= '-' . $this->faker->numberBetween(1, 999);
         }
 
-        return $prefix ? "{$prefix}-{$name}" : $name;
+        return $prefix !== '' ? "{$prefix}-{$name}" : $name;
     }
 
     private function generateRoomMetadata(): array

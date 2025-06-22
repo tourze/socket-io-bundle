@@ -18,7 +18,7 @@ class AdminMenu implements MenuProviderInterface
 
     public function __invoke(ItemInterface $item): void
     {
-        if (!$item->getChild('实时通信')) {
+        if ($item->getChild('实时通信') === null) {
             $item->addChild('实时通信');
         }
 

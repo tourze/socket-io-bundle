@@ -30,11 +30,10 @@ class MessageCrudControllerTest extends TestCase
         
         $this->assertTrue($reflection->hasMethod('__construct'));
         $constructor = $reflection->getMethod('__construct');
-        $this->assertSame(2, $constructor->getNumberOfParameters());
+        $this->assertSame(1, $constructor->getNumberOfParameters());
         
         $parameters = $constructor->getParameters();
-        $this->assertSame('entityManager', $parameters[0]->getName());
-        $this->assertSame('adminUrlGenerator', $parameters[1]->getName());
+        $this->assertSame('adminUrlGenerator', $parameters[0]->getName());
     }
 
     public function test_configure_methods_exist_and_are_public(): void
@@ -61,7 +60,7 @@ class MessageCrudControllerTest extends TestCase
         
         $returnType = $reflection->getReturnType();
         $this->assertNotNull($returnType);
-        $this->assertSame('EasyCorp\Bundle\EasyAdminBundle\Config\Crud', $returnType->getName());
+        $this->assertSame('EasyCorp\Bundle\EasyAdminBundle\Config\Crud', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
     }
 
     public function test_create_index_query_builder_method_exists(): void
@@ -125,13 +124,15 @@ class MessageCrudControllerTest extends TestCase
         $viewDeliveriesMethod = $reflection->getMethod('viewDeliveries');
         $this->assertSame(1, $viewDeliveriesMethod->getNumberOfParameters());
         $this->assertSame('context', $viewDeliveriesMethod->getParameters()[0]->getName());
-        $this->assertSame('Symfony\Component\HttpFoundation\Response', $viewDeliveriesMethod->getReturnType()->getName());
+        $returnType = $viewDeliveriesMethod->getReturnType();
+        $this->assertSame('Symfony\Component\HttpFoundation\Response', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
         
         // resendMessage method
         $resendMethod = $reflection->getMethod('resendMessage');
         $this->assertSame(1, $resendMethod->getNumberOfParameters());
         $this->assertSame('context', $resendMethod->getParameters()[0]->getName());
-        $this->assertSame('Symfony\Component\HttpFoundation\Response', $resendMethod->getReturnType()->getName());
+        $returnType = $resendMethod->getReturnType();
+        $this->assertSame('Symfony\Component\HttpFoundation\Response', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
     }
 
     public function test_docblock_comments_exist_for_custom_actions(): void
@@ -159,7 +160,7 @@ class MessageCrudControllerTest extends TestCase
         
         $returnType = $reflection->getReturnType();
         $this->assertNotNull($returnType);
-        $this->assertSame('EasyCorp\Bundle\EasyAdminBundle\Config\Actions', $returnType->getName());
+        $this->assertSame('EasyCorp\Bundle\EasyAdminBundle\Config\Actions', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
     }
 
     public function test_configure_filters_method_returns_correct_type(): void
@@ -168,7 +169,7 @@ class MessageCrudControllerTest extends TestCase
         
         $returnType = $reflection->getReturnType();
         $this->assertNotNull($returnType);
-        $this->assertSame('EasyCorp\Bundle\EasyAdminBundle\Config\Filters', $returnType->getName());
+        $this->assertSame('EasyCorp\Bundle\EasyAdminBundle\Config\Filters', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
     }
 
     public function test_configure_fields_method_returns_iterable(): void
@@ -177,6 +178,6 @@ class MessageCrudControllerTest extends TestCase
         
         $returnType = $reflection->getReturnType();
         $this->assertNotNull($returnType);
-        $this->assertSame('iterable', $returnType->getName());
+        $this->assertSame('iterable', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
     }
 } 

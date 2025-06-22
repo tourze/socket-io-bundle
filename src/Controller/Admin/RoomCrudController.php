@@ -2,7 +2,6 @@
 
 namespace SocketIoBundle\Controller\Admin;
 
-use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminAction;
 use EasyCorp\Bundle\EasyAdminBundle\Collection\FieldCollection;
@@ -29,14 +28,11 @@ use Symfony\Component\HttpFoundation\Response;
 
 class RoomCrudController extends AbstractCrudController
 {
-    private EntityManagerInterface $entityManager;
     private AdminUrlGenerator $adminUrlGenerator;
 
     public function __construct(
-        EntityManagerInterface $entityManager,
         AdminUrlGenerator $adminUrlGenerator,
     ) {
-        $this->entityManager = $entityManager;
         $this->adminUrlGenerator = $adminUrlGenerator;
     }
 

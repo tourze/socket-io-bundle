@@ -19,7 +19,7 @@ enum EnginePacketType: int implements Itemable, Labelable, Selectable
     case UPGRADE = 5;  // non-ws
     case NOOP = 6;     // non-ws
 
-    public function label(): string
+    public function getLabel(): string
     {
         return match ($this) {
             self::OPEN => 'Open',
@@ -30,5 +30,13 @@ enum EnginePacketType: int implements Itemable, Labelable, Selectable
             self::UPGRADE => 'Upgrade',
             self::NOOP => 'Noop',
         };
+    }
+
+    /**
+     * @deprecated Use getLabel() instead
+     */
+    public function label(): string
+    {
+        return $this->getLabel();
     }
 }

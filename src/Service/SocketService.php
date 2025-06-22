@@ -11,7 +11,6 @@ use SocketIoBundle\Exception\InvalidTransportException;
 use SocketIoBundle\Exception\PingTimeoutException;
 use SocketIoBundle\Protocol\EnginePacket;
 use SocketIoBundle\Protocol\SocketPacket;
-use SocketIoBundle\Repository\RoomRepository;
 use SocketIoBundle\Repository\SocketRepository;
 use SocketIoBundle\Transport\PollingTransport;
 use SocketIoBundle\Transport\TransportInterface;
@@ -34,7 +33,6 @@ class SocketService
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly SocketRepository $socketRepository,
-        private readonly RoomRepository $roomRepository,
         private readonly RoomService $roomService,
         private readonly DeliveryService $deliveryService,
         private readonly EventDispatcherInterface $eventDispatcher,
@@ -158,7 +156,7 @@ class SocketService
             default => null,
         };
 
-        if ($transport) {
+        if ($transport !== null) {
             $this->activeTransports[$sessionId] = $transport;
             $transport->setPacketHandler(fn ($packet) => $this->handlePacket($socket, $packet));
         }
@@ -172,7 +170,7 @@ class SocketService
     public function sendPing(Socket $socket): void
     {
         $transport = $this->getTransport($socket);
-        if ($transport) {
+        if ($transport !== null) {
             $transport->send(EnginePacket::createPing()->encode());
         }
     }
@@ -190,12 +188,12 @@ class SocketService
     public function checkActive(Socket $socket, int $timeout = 30): void
     {
         $transport = $this->getTransport($socket);
-        if (!$transport || $transport->isExpired()) {
+        if ($transport === null || $transport->isExpired()) {
             throw new InvalidTransportException($socket->getSessionId());
         }
 
         $lastPingTime = $socket->getLastPingTime();
-        if (!$lastPingTime) {
+        if ($lastPingTime === null) {
             throw new InvalidPingException($socket->getSessionId());
         }
 
@@ -204,7 +202,7 @@ class SocketService
 
         // 检查最后一次 ping 时间和投递时间
         $pingDiff = $now->getTimestamp() - $lastPingTime->getTimestamp();
-        $deliverDiff = $lastDeliverTime ? $now->getTimestamp() - $lastDeliverTime->getTimestamp() : 0;
+        $deliverDiff = $lastDeliverTime !== null ? $now->getTimestamp() - $lastDeliverTime->getTimestamp() : 0;
 
         // 只有当 ping 和投递都超时时才抛出异常
         if ($pingDiff > $timeout && $deliverDiff > $timeout * 2) {

@@ -81,8 +81,8 @@ class DeliveryFixtures extends AppFixtures implements DependentFixtureInterface
         if ($statusRandom <= 80) {
             $delivery->setStatus(MessageStatus::DELIVERED);
             // 设置投递时间
-            $deliveredAt = clone $message->getCreateTime();
-            $deliveredAt = new \DateTime('@' . ($deliveredAt->getTimestamp() + $this->faker->numberBetween(1, 60)));
+            $createTime = $message->getCreateTime();
+            $deliveredAt = new \DateTimeImmutable('@' . ($createTime->getTimestamp() + $this->faker->numberBetween(1, 60)));
             $socket->setLastDeliverTime($deliveredAt);
         } elseif ($statusRandom <= 95) {
             $delivery->setStatus(MessageStatus::FAILED);
@@ -100,8 +100,7 @@ class DeliveryFixtures extends AppFixtures implements DependentFixtureInterface
         }
 
         // 设置创建时间和更新时间
-        $createTime = clone $message->getCreateTime();
-        $delivery->setCreateTime($createTime);
+        $delivery->setCreateTime($message->getCreateTime());
 
         return $delivery;
     }

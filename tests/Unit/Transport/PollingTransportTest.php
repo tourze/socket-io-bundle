@@ -70,8 +70,7 @@ class PollingTransportTest extends TestCase
             ['GET', true],
             ['POST', false],
         ]);
-        $request->query = $this->createMock(\Symfony\Component\HttpFoundation\ParameterBag::class);
-        $request->query->expects($this->any())->method('get')->with('j')->willReturn(null);
+        $request->query = new \Symfony\Component\HttpFoundation\InputBag();
         $request->headers = $this->createMock(\Symfony\Component\HttpFoundation\HeaderBag::class);
         $request->headers->expects($this->any())->method('get')->with('Accept')->willReturn('text/plain');
         
@@ -96,8 +95,7 @@ class PollingTransportTest extends TestCase
             ['POST', true],
         ]);
         $request->expects($this->any())->method('getContent')->willReturn('2probe');
-        $request->query = $this->createMock(\Symfony\Component\HttpFoundation\ParameterBag::class);
-        $request->query->expects($this->any())->method('get')->with('j')->willReturn(null);
+        $request->query = new \Symfony\Component\HttpFoundation\InputBag();
         $request->headers = $this->createMock(\Symfony\Component\HttpFoundation\HeaderBag::class);
         $request->headers->expects($this->any())->method('get')->with('Accept')->willReturn('text/plain');
         
@@ -117,8 +115,7 @@ class PollingTransportTest extends TestCase
             ['GET', false],
             ['POST', false],
         ]);
-        $request->query = $this->createMock(\Symfony\Component\HttpFoundation\ParameterBag::class);
-        $request->query->expects($this->any())->method('get')->with('j')->willReturn(null);
+        $request->query = new \Symfony\Component\HttpFoundation\InputBag();
         $request->headers = $this->createMock(\Symfony\Component\HttpFoundation\HeaderBag::class);
         $request->headers->expects($this->any())->method('get')->with('Accept')->willReturn('text/plain');
         
@@ -136,8 +133,7 @@ class PollingTransportTest extends TestCase
             ['POST', true],
         ]);
         $request->expects($this->any())->method('getContent')->willReturn('d=2probe');
-        $request->query = $this->createMock(\Symfony\Component\HttpFoundation\ParameterBag::class);
-        $request->query->expects($this->any())->method('get')->with('j')->willReturn('0');
+        $request->query = new \Symfony\Component\HttpFoundation\InputBag(['j' => '0']);
         $request->headers = $this->createMock(\Symfony\Component\HttpFoundation\HeaderBag::class);
         $request->headers->expects($this->any())->method('get')->with('Accept')->willReturn('text/plain');
         

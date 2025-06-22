@@ -22,8 +22,8 @@ class MessageTest extends TestCase
     {
         $this->assertInstanceOf(ArrayCollection::class, $this->message->getRooms());
         $this->assertInstanceOf(ArrayCollection::class, $this->message->getDeliveries());
-        $this->assertEmpty($this->message->getRooms());
-        $this->assertEmpty($this->message->getDeliveries());
+        $this->assertCount(0, $this->message->getRooms());
+        $this->assertCount(0, $this->message->getDeliveries());
         $this->assertNull($this->message->getSender());
         $this->assertNull($this->message->getMetadata());
         $this->assertEquals([], $this->message->getData());
@@ -84,7 +84,7 @@ class MessageTest extends TestCase
         $room = $this->createMock(Room::class);
 
         // 测试初始状态
-        $this->assertEmpty($this->message->getRooms());
+        $this->assertCount(0, $this->message->getRooms());
 
         // 测试添加 Room
         $room->expects($this->once())
@@ -124,7 +124,7 @@ class MessageTest extends TestCase
         $delivery = $this->createMock(Delivery::class);
 
         // 测试初始状态
-        $this->assertEmpty($this->message->getDeliveries());
+        $this->assertCount(0, $this->message->getDeliveries());
 
         // 测试添加 Delivery
         $delivery->expects($this->once())
@@ -147,7 +147,7 @@ class MessageTest extends TestCase
     {
         $this->assertNull($this->message->getCreateTime());
 
-        $now = new \DateTime();
+        $now = new \DateTimeImmutable();
         $this->message->setCreateTime($now);
         $this->assertSame($now, $this->message->getCreateTime());
     }

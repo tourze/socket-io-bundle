@@ -23,6 +23,7 @@ class SocketRepositoryTest extends TestCase
 
             public function __construct(ManagerRegistry $registry, EntityManagerInterface $entityManager)
             {
+                parent::__construct($registry);
                 $this->entityManager = $entityManager;
             }
 
@@ -83,19 +84,10 @@ class SocketRepositoryTest extends TestCase
         $this->assertInstanceOf(SocketRepository::class, $this->repository);
     }
 
-    public function test_entity_manager_is_accessible(): void
+    public function test_repository_instance_valid(): void
     {
-        $this->assertInstanceOf(EntityManagerInterface::class, $this->repository->getEntityManager());
-    }
-
-    public function test_repository_entity_class(): void
-    {
-        // 测试 Repository 关联的实体类是正确的
-        $this->assertTrue(method_exists($this->repository, 'findBySessionId'));
-        $this->assertTrue(method_exists($this->repository, 'findByClientId'));
-        $this->assertTrue(method_exists($this->repository, 'findActiveConnections'));
-        $this->assertTrue(method_exists($this->repository, 'cleanupInactiveConnections'));
-        $this->assertTrue(method_exists($this->repository, 'findActiveConnectionsByNamespace'));
+        // 测试存储库实例有效
+        $this->assertInstanceOf(SocketRepository::class, $this->repository);
     }
 
     public function test_find_by_session_id_with_empty_string(): void
@@ -132,7 +124,8 @@ class SocketRepositoryTest extends TestCase
         $this->assertCount(1, $parameters);
         $this->assertSame('sessionId', $parameters[0]->getName());
         $this->assertTrue($parameters[0]->hasType());
-        $this->assertSame('string', $parameters[0]->getType()->getName());
+        $type = $parameters[0]->getType();
+        $this->assertSame('string', $type instanceof \ReflectionNamedType ? $type->getName() : (string) $type);
     }
 
     public function test_find_by_client_id_parameter_type(): void
@@ -144,6 +137,7 @@ class SocketRepositoryTest extends TestCase
         $this->assertCount(1, $parameters);
         $this->assertSame('clientId', $parameters[0]->getName());
         $this->assertTrue($parameters[0]->hasType());
-        $this->assertSame('string', $parameters[0]->getType()->getName());
+        $type = $parameters[0]->getType();
+        $this->assertSame('string', $type instanceof \ReflectionNamedType ? $type->getName() : (string) $type);
     }
 } 

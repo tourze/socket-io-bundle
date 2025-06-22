@@ -94,7 +94,7 @@ class InvalidPingExceptionTest extends TestCase
         // 检查参数类型
         $parameterType = $parameters[0]->getType();
         $this->assertNotNull($parameterType);
-        $this->assertSame('string', $parameterType->getName());
+        $this->assertSame('string', (string) $parameterType);
     }
 
     public function test_exception_hierarchy(): void

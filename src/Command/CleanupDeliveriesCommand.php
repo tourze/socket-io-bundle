@@ -10,12 +10,14 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 #[AsCommand(
-    name: 'socket:cleanup-deliveries',
+    name: self::NAME,
     description: '清理过期的消息投递记录'
 )]
 class CleanupDeliveriesCommand extends Command
 {
     public const NAME = 'socket:cleanup-deliveries';
+    private bool $shouldStop = false;
+    
     public function __construct(
         private readonly DeliveryService $deliveryService,
     ) {
@@ -59,9 +61,25 @@ class CleanupDeliveriesCommand extends Command
                 $days
             ));
 
-            while (true) {
+            // 添加信号处理器以支持优雅停止
+            if (\function_exists('pcntl_signal')) {
+                pcntl_signal(SIGTERM, fn() => $this->shouldStop = true);
+                pcntl_signal(SIGINT, fn() => $this->shouldStop = true);
+            }
+            
+            while (!$this->shouldStop) {
                 $this->runCleanup($output, $days);
-                sleep($interval);
+                
+                // 使用更短的睡眠间隔以便能更快地响应停止信号
+                $elapsed = 0;
+                while ($elapsed < $interval && !$this->shouldStop) {
+                    sleep(1);
+                    $elapsed++;
+                    
+                    if (\function_exists('pcntl_signal_dispatch')) {
+                        pcntl_signal_dispatch();
+                    }
+                }
             }
         } else {
             $output->writeln(sprintf('<info>开始清理 %d 天前的消息投递记录</info>', $days));

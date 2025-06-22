@@ -12,7 +12,7 @@ use Tourze\DoctrineSnowflakeBundle\Service\SnowflakeIdGenerator;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 
 #[ORM\Entity(repositoryClass: SocketRepository::class)]
-#[ORM\Table(name: 'ims_socket_io_connection')]
+#[ORM\Table(name: 'ims_socket_io_connection', options: ['comment' => 'Socket连接表'])]
 class Socket implements \Stringable
 {
     use TimestampableAware;
@@ -23,38 +23,38 @@ class Socket implements \Stringable
     private ?string $id = null;
 
     #[IndexColumn]
-    #[ORM\Column(type: 'string', length: 64, unique: true)]
+    #[ORM\Column(type: Types::STRING, length: 64, unique: true, options: ['comment' => '会话 ID'])]
     private string $sessionId;
 
     #[IndexColumn]
-    #[ORM\Column(type: 'string', length: 64, unique: true)]
+    #[ORM\Column(type: Types::STRING, length: 64, unique: true, options: ['comment' => 'Socket ID'])]
     private string $socketId;
 
-    #[ORM\Column(type: 'string', length: 255, nullable: false)]
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: false, options: ['comment' => '命名空间'])]
     private string $namespace = '/';
 
-    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true, options: ['comment' => '客户端 ID'])]
     private ?string $clientId = null;
 
-    #[ORM\Column(type: 'json', nullable: true)]
+    #[ORM\Column(type: Types::JSON, nullable: true, options: ['comment' => '握手数据'])]
     private ?array $handshake = null;
 
-    #[ORM\Column(type: 'datetime', nullable: true)]
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '最后 Ping 时间'])]
     private ?\DateTimeImmutable $lastPingTime = null;
 
-    #[ORM\Column(type: 'datetime', nullable: true)]
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '最后消息时间'])]
     private ?\DateTimeImmutable $lastDeliverTime = null;
 
-    #[ORM\Column(type: 'datetime', nullable: true)]
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '最后活跃时间'])]
     private ?\DateTimeImmutable $lastActiveTime = null;
 
-    #[ORM\Column(type: 'boolean')]
+    #[ORM\Column(type: Types::BOOLEAN, options: ['comment' => '是否连接'])]
     private bool $connected = true;
 
-    #[ORM\Column(type: 'integer')]
+    #[ORM\Column(type: Types::INTEGER, options: ['comment' => '轮询次数'])]
     private int $pollCount = 0;
 
-    #[ORM\Column(type: 'string', length: 32)]
+    #[ORM\Column(type: Types::STRING, length: 32, options: ['comment' => '传输方式'])]
     private string $transport = 'polling';
 
     #[ORM\ManyToMany(targetEntity: Room::class, inversedBy: 'sockets')]

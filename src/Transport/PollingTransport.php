@@ -76,7 +76,7 @@ class PollingTransport implements TransportInterface
     {
         // 获取当前socket
         $socket = $this->socketRepository->findBySessionId($this->sessionId);
-        if (!$socket || !$socket->isConnected()) {
+        if ($socket === null || !$socket->isConnected()) {
             return;
         }
 
@@ -91,8 +91,8 @@ class PollingTransport implements TransportInterface
 
         // 创建消息记录
         $message = new Message();
-        $message->setEvent($socketPacket->getData() ? json_decode($socketPacket->getData(), true)[0] : '')
-            ->setData($socketPacket->getData() ? array_slice(json_decode($socketPacket->getData(), true), 1) : [])
+        $message->setEvent($socketPacket->getData() !== null ? json_decode($socketPacket->getData(), true)[0] : '')
+            ->setData($socketPacket->getData() !== null ? array_slice(json_decode($socketPacket->getData(), true), 1) : [])
             ->setSender($socket)
             ->setMetadata([
                 'namespace' => $socketPacket->getNamespace(),
@@ -114,7 +114,7 @@ class PollingTransport implements TransportInterface
     {
         // 获取当前socket
         $socket = $this->socketRepository->findBySessionId($this->sessionId);
-        if (!$socket) {
+        if ($socket === null) {
             return;
         }
 
@@ -154,7 +154,7 @@ class PollingTransport implements TransportInterface
     private function validateAndUpdateSocket(): Socket
     {
         $socket = $this->socketRepository->findBySessionId($this->sessionId);
-        if (!$socket) {
+        if ($socket === null) {
             throw new \RuntimeException('Invalid session', Response::HTTP_BAD_REQUEST);
         }
 
@@ -180,17 +180,17 @@ class PollingTransport implements TransportInterface
         $now = new \DateTime();
 
         // 如果上次 ping 时间超过了 ping interval 的一半，优先发送 ping
-        if ($lastPingTime && ($now->getTimestamp() - $lastPingTime->getTimestamp()) > intval($_ENV['SOCKET_IO_PING_INTERVAL'] / 2)) {
+        if ($lastPingTime !== null && ($now->getTimestamp() - $lastPingTime->getTimestamp()) > intval($_ENV['SOCKET_IO_PING_INTERVAL'] / 2)) {
             return $this->handlePollTimeout($socket);
         }
 
         while ((time() - $startTime) < intval($_ENV['SOCKET_IO_PING_INTERVAL'])) {
             $response = $this->tryDeliverMessages($socket);
-            if ($response) {
+            if ($response !== null) {
                 // 检查是否需要发送 ping
                 $now = new \DateTime();
                 $lastPingTime = $socket->getLastPingTime();
-                if ($lastPingTime && ($now->getTimestamp() - $lastPingTime->getTimestamp()) > intval($_ENV['SOCKET_IO_PING_INTERVAL'] / 2)) {
+                if ($lastPingTime !== null && ($now->getTimestamp() - $lastPingTime->getTimestamp()) > intval($_ENV['SOCKET_IO_PING_INTERVAL'] / 2)) {
                     // 先发送消息，下一次轮询时发送 ping
                     $socket->updateLastActiveTime();
                     $this->em->flush();
@@ -244,12 +244,12 @@ class PollingTransport implements TransportInterface
             $packet = $this->createSocketPacket($delivery->getMessage());
             $encodedPacket = $this->encodePacket($packet->encode());
 
-            $packetSize = strlen($encodedPacket) + ($payload ? 1 : 0);
+            $packetSize = strlen($encodedPacket) + ($payload !== '' ? 1 : 0);
             if ($payloadSize + $packetSize > intval($_ENV['SOCKET_IO_MAX_PAYLOAD_SIZE'])) {
                 break;
             }
 
-            if ($payload) {
+            if ($payload !== '') {
                 $payload .= "\x1e";
             }
             $payload .= $encodedPacket;

@@ -93,7 +93,7 @@ class MessageFixtures extends AppFixtures implements DependentFixtureInterface
 
         // 设置创建时间
         $createdAt = $this->faker->dateTimeBetween('-30 days', 'now');
-        $message->setCreateTime($createdAt);
+        $message->setCreateTime(\DateTimeImmutable::createFromMutable($createdAt));
 
         return $message;
     }
@@ -122,7 +122,7 @@ class MessageFixtures extends AppFixtures implements DependentFixtureInterface
 
         // 设置创建时间
         $createdAt = $this->faker->dateTimeBetween('-30 days', 'now');
-        $message->setCreateTime($createdAt);
+        $message->setCreateTime(\DateTimeImmutable::createFromMutable($createdAt));
 
         return $message;
     }

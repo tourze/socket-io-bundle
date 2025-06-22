@@ -7,6 +7,7 @@ use SocketIoBundle\Entity\Delivery;
 use SocketIoBundle\Entity\Message;
 use SocketIoBundle\Entity\Socket;
 use SocketIoBundle\Enum\MessageStatus;
+use SocketIoBundle\Enum\SocketPacketType;
 use SocketIoBundle\Protocol\SocketPacket;
 use SocketIoBundle\Repository\DeliveryRepository;
 use SocketIoBundle\Repository\RoomRepository;
@@ -75,7 +76,7 @@ class DeliveryService
         if (!isset($this->queues[$roomName])) {
             // 使用实体管理器查询消息
             $room = $this->roomRepository->findByName($roomName);
-            if (!$room) {
+            if ($room === null) {
                 return [];
             }
             
@@ -94,8 +95,9 @@ class DeliveryService
             foreach ($messages as $message) {
                 $result[] = [
                     'packet' => new SocketPacket(
-                        null, 
-                        $message->getEvent(), 
+                        SocketPacketType::EVENT, 
+                        null,
+                        null,
                         json_encode(array_merge([$message->getEvent()], $message->getData()))
                     ),
                     'senderId' => $message->getSender() ? $message->getSender()->getSocketId() : null,
@@ -211,14 +213,14 @@ class DeliveryService
     private function persistMessage(string $roomName, SocketPacket $packet, string $senderId): void
     {
         $room = $this->roomRepository->findByName($roomName);
-        if (!$room) {
+        if ($room === null) {
             return;
         }
 
         // 创建消息记录
         $message = new Message();
-        $message->setEvent($packet->getData() ? json_decode($packet->getData(), true)[0] : '')
-            ->setData($packet->getData() ? array_slice(json_decode($packet->getData(), true), 1) : [])
+        $message->setEvent($packet->getData() !== null ? json_decode($packet->getData(), true)[0] : '')
+            ->setData($packet->getData() !== null ? array_slice(json_decode($packet->getData(), true), 1) : [])
             ->setSender($this->socketRepository->findBySessionId($senderId))
             ->setMetadata([
                 'namespace' => $packet->getNamespace(),

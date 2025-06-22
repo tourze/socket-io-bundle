@@ -7,25 +7,25 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use SocketIoBundle\Repository\MessageRepository;
-use Tourze\DoctrineIndexedBundle\Attribute\IndexColumn;
 use Tourze\DoctrineSnowflakeBundle\Service\SnowflakeIdGenerator;
-use Tourze\DoctrineTimestampBundle\Attribute\CreateTimeColumn;
+use Tourze\DoctrineTimestampBundle\Traits\CreateTimeAware;
 
 #[ORM\Entity(repositoryClass: MessageRepository::class)]
-#[ORM\Table(name: 'ims_socket_io_message')]
+#[ORM\Table(name: 'ims_socket_io_message', options: ['comment' => '消息表'])]
 #[ORM\Index(name: 'idx_message_event', columns: ['event'])]
 class Message implements \Stringable
 {
+    use CreateTimeAware;
     #[ORM\Id]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
     #[ORM\CustomIdGenerator(SnowflakeIdGenerator::class)]
     #[ORM\Column(type: Types::BIGINT, nullable: false, options: ['comment' => 'ID'])]
     private ?string $id = null;
 
-    #[ORM\Column(type: 'string', length: 255)]
+    #[ORM\Column(type: Types::STRING, length: 255, options: ['comment' => '事件名称'])]
     private string $event;
 
-    #[ORM\Column(type: 'json')]
+    #[ORM\Column(type: Types::JSON, options: ['comment' => '消息数据'])]
     private array $data = [];
 
     #[ORM\ManyToOne(targetEntity: Socket::class)]
@@ -39,13 +39,8 @@ class Message implements \Stringable
     #[ORM\OneToMany(targetEntity: Delivery::class, mappedBy: 'message')]
     private Collection $deliveries;
 
-    #[ORM\Column(type: 'json', nullable: true)]
+    #[ORM\Column(type: Types::JSON, nullable: true, options: ['comment' => '元数据'])]
     private ?array $metadata = null;
-
-    #[IndexColumn]
-    #[CreateTimeColumn]
-    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '创建时间'])]
-    private ?\DateTimeImmutable $createTime = null;
 
     public function __construct()
     {
@@ -56,18 +51,6 @@ class Message implements \Stringable
     public function getId(): ?string
     {
         return $this->id;
-    }
-
-    public function setCreateTime(?\DateTimeImmutable $createdAt): self
-    {
-        $this->createTime = $createdAt;
-
-        return $this;
-    }
-
-    public function getCreateTime(): ?\DateTimeImmutableImmutable
-    {
-        return $this->createTime;
     }
 
     public function getEvent(): string

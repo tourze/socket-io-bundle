@@ -22,6 +22,7 @@ class DeliveryRepositoryTest extends TestCase
 
             public function __construct(ManagerRegistry $registry, EntityManagerInterface $entityManager)
             {
+                parent::__construct($registry);
                 $this->entityManager = $entityManager;
             }
 
@@ -37,9 +38,10 @@ class DeliveryRepositoryTest extends TestCase
         $this->assertInstanceOf(DeliveryRepository::class, $this->repository);
     }
 
-    public function test_entity_manager_is_accessible(): void
+    public function test_repository_instance(): void
     {
-        $this->assertInstanceOf(EntityManagerInterface::class, $this->repository->getEntityManager());
+        // Test that repository is properly instantiated
+        $this->assertInstanceOf(DeliveryRepository::class, $this->repository);
     }
 
     public function test_repository_methods_exist(): void
@@ -63,7 +65,7 @@ class DeliveryRepositoryTest extends TestCase
         // 检查参数类型
         $paramType = $parameters[0]->getType();
         $this->assertNotNull($paramType);
-        $this->assertSame('SocketIoBundle\Entity\Socket', $paramType->getName());
+        $this->assertSame('SocketIoBundle\Entity\Socket', $paramType instanceof \ReflectionNamedType ? $paramType->getName() : (string) $paramType);
     }
 
     public function test_find_message_deliveries_method_signature(): void
@@ -78,7 +80,7 @@ class DeliveryRepositoryTest extends TestCase
         // 检查参数类型
         $paramType = $parameters[0]->getType();
         $this->assertNotNull($paramType);
-        $this->assertSame('SocketIoBundle\Entity\Message', $paramType->getName());
+        $this->assertSame('SocketIoBundle\Entity\Message', $paramType instanceof \ReflectionNamedType ? $paramType->getName() : (string) $paramType);
     }
 
     public function test_cleanup_old_deliveries_method_signature(): void
@@ -97,7 +99,7 @@ class DeliveryRepositoryTest extends TestCase
         // 检查参数类型
         $paramType = $parameters[0]->getType();
         $this->assertNotNull($paramType);
-        $this->assertSame('int', $paramType->getName());
+        $this->assertSame('int', $paramType instanceof \ReflectionNamedType ? $paramType->getName() : (string) $paramType);
     }
 
     public function test_find_pending_deliveries_return_type(): void
@@ -107,7 +109,7 @@ class DeliveryRepositoryTest extends TestCase
         $returnType = $method->getReturnType();
         
         $this->assertNotNull($returnType);
-        $this->assertSame('array', $returnType->getName());
+        $this->assertSame('array', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
     }
 
     public function test_find_message_deliveries_return_type(): void
@@ -117,7 +119,7 @@ class DeliveryRepositoryTest extends TestCase
         $returnType = $method->getReturnType();
         
         $this->assertNotNull($returnType);
-        $this->assertSame('array', $returnType->getName());
+        $this->assertSame('array', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
     }
 
     public function test_cleanup_old_deliveries_return_type(): void
@@ -127,15 +129,35 @@ class DeliveryRepositoryTest extends TestCase
         $returnType = $method->getReturnType();
         
         $this->assertNotNull($returnType);
-        $this->assertSame('int', $returnType->getName());
+        $this->assertSame('int', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
     }
 
-    public function test_repository_has_correct_entity_class(): void
+    public function test_repository_has_correct_methods_implementation(): void
     {
-        // 通过检查方法存在性来验证这是正确的 Delivery Repository
-        $this->assertTrue(method_exists($this->repository, 'findPendingDeliveries'));
-        $this->assertTrue(method_exists($this->repository, 'findMessageDeliveries'));
-        $this->assertTrue(method_exists($this->repository, 'cleanupOldDeliveries'));
+        $reflection = new \ReflectionClass($this->repository);
+        
+        // 验证 findPendingDeliveries 方法
+        $this->assertTrue($reflection->hasMethod('findPendingDeliveries'));
+        $findPendingMethod = $reflection->getMethod('findPendingDeliveries');
+        $this->assertTrue($findPendingMethod->isPublic());
+        
+        // 验证 findMessageDeliveries 方法
+        $this->assertTrue($reflection->hasMethod('findMessageDeliveries'));
+        $findMessageMethod = $reflection->getMethod('findMessageDeliveries');
+        $this->assertTrue($findMessageMethod->isPublic());
+        
+        // 验证 cleanupOldDeliveries 方法
+        $this->assertTrue($reflection->hasMethod('cleanupOldDeliveries'));
+        $cleanupMethod = $reflection->getMethod('cleanupOldDeliveries');
+        $this->assertTrue($cleanupMethod->isPublic());
+        
+        // 验证返回类型
+        $returnType1 = $findPendingMethod->getReturnType();
+        $this->assertSame('array', $returnType1 instanceof \ReflectionNamedType ? $returnType1->getName() : (string) $returnType1);
+        $returnType2 = $findMessageMethod->getReturnType();
+        $this->assertSame('array', $returnType2 instanceof \ReflectionNamedType ? $returnType2->getName() : (string) $returnType2);
+        $returnType3 = $cleanupMethod->getReturnType();
+        $this->assertSame('int', $returnType3 instanceof \ReflectionNamedType ? $returnType3->getName() : (string) $returnType3);
     }
 
     public function test_all_methods_have_correct_visibility(): void

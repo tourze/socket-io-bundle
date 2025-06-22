@@ -35,7 +35,8 @@ abstract class AppFixtures extends Fixture
                 4 => [
                     $this->faker->word() => $this->faker->word(),
                     $this->faker->word() => $this->faker->numberBetween(1, 100)
-                ]
+                ],
+                default => $this->faker->word() // 处理其他情况
             };
 
             $data[$key] = $value;
@@ -58,7 +59,7 @@ abstract class AppFixtures extends Fixture
         $prefix = $this->faker->randomElement(['server', 'client', 'room', 'user', 'system', '']);
         $suffix = $this->faker->randomElement($eventTypes);
 
-        return $prefix ? "{$prefix}:{$suffix}" : $suffix;
+        return $prefix !== '' ? "{$prefix}:{$suffix}" : $suffix;
     }
 
     /**

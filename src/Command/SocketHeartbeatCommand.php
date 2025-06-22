@@ -15,12 +15,14 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 #[AsCommand(
-    name: 'socket-io:heartbeat',
+    name: self::NAME,
     description: '执行Socket.IO心跳检查和资源清理'
 )]
 class SocketHeartbeatCommand extends Command
 {
     public const NAME = 'socket-io:heartbeat';
+    private bool $shouldStop = false;
+    
     public function __construct(
         private readonly SocketRepository $socketRepository,
         private readonly MessageRepository $messageRepository,
@@ -59,9 +61,25 @@ class SocketHeartbeatCommand extends Command
                 $interval
             ));
 
-            while (true) {
+            // 添加信号处理器以支持优雅停止
+            if (\function_exists('pcntl_signal')) {
+                pcntl_signal(SIGTERM, fn() => $this->shouldStop = true);
+                pcntl_signal(SIGINT, fn() => $this->shouldStop = true);
+            }
+            
+            while (!$this->shouldStop) {
                 $this->runHeartbeat($output);
-                usleep($interval * 1000); // 转换为微秒
+                
+                // 使用更短的睡眠间隔以便能更快地响应停止信号
+                $elapsed = 0;
+                while ($elapsed < ($interval / 1000) && !$this->shouldStop) {
+                    usleep(100000); // 100ms
+                    $elapsed += 0.1;
+                    
+                    if (\function_exists('pcntl_signal_dispatch')) {
+                        pcntl_signal_dispatch();
+                    }
+                }
             }
         } else {
             $output->writeln('<info>执行单次心跳检查</info>');

@@ -15,13 +15,18 @@ enum MessageStatus: int implements Itemable, Labelable, Selectable
     case DELIVERED = 1;
     case FAILED = 2;
 
-    public function label(): string
+    public function getLabel(): string
     {
         return match ($this) {
             self::PENDING => 'Pending',
             self::DELIVERED => 'Delivered',
             self::FAILED => 'Failed',
         };
+    }
+    
+    public function label(): string
+    {
+        return $this->getLabel();
     }
 
     public function isDelivered(): bool

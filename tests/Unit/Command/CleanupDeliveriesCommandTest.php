@@ -191,7 +191,7 @@ class CleanupDeliveriesCommandTest extends TestCase
         
         $returnType = $reflection->getReturnType();
         $this->assertNotNull($returnType);
-        $this->assertSame('int', $returnType->getName());
+        $this->assertSame('int', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
     }
 
     public function test_command_class_structure(): void

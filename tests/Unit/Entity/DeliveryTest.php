@@ -54,7 +54,7 @@ class DeliveryTest extends TestCase
         $this->assertFalse($this->delivery->isFailed());
 
         // DELIVERED 状态应该自动设置 deliveredAt 时间
-        $this->assertInstanceOf(\DateTime::class, $this->delivery->getDeliveredAt());
+        $this->assertInstanceOf(\DateTimeImmutable::class, $this->delivery->getDeliveredAt());
 
         // 测试设置为 FAILED
         $this->delivery->setStatus(MessageStatus::FAILED);
@@ -94,7 +94,7 @@ class DeliveryTest extends TestCase
 
         // 设置为 DELIVERED 应该自动设置 deliveredAt
         $this->delivery->setStatus(MessageStatus::DELIVERED);
-        $this->assertInstanceOf(\DateTime::class, $this->delivery->getDeliveredAt());
+        $this->assertInstanceOf(\DateTimeImmutable::class, $this->delivery->getDeliveredAt());
 
         // 获取当前 deliveredAt 时间
         $firstDeliveryTime = $this->delivery->getDeliveredAt();

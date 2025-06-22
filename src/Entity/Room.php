@@ -11,7 +11,7 @@ use Tourze\DoctrineSnowflakeBundle\Service\SnowflakeIdGenerator;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 
 #[ORM\Entity(repositoryClass: RoomRepository::class)]
-#[ORM\Table(name: 'ims_socket_io_room')]
+#[ORM\Table(name: 'ims_socket_io_room', options: ['comment' => '房间表'])]
 #[ORM\Index(name: 'idx_room_name', columns: ['name'])]
 class Room implements \Stringable
 {
@@ -22,13 +22,13 @@ class Room implements \Stringable
     #[ORM\Column(type: Types::BIGINT, nullable: false, options: ['comment' => 'ID'])]
     private ?string $id = null;
 
-    #[ORM\Column(type: 'string', length: 255)]
+    #[ORM\Column(type: Types::STRING, length: 255, options: ['comment' => '房间名称'])]
     private string $name;
 
-    #[ORM\Column(type: 'string', length: 255, nullable: false)]
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: false, options: ['comment' => '命名空间'])]
     private string $namespace = '/';
 
-    #[ORM\Column(type: 'json', nullable: true)]
+    #[ORM\Column(type: Types::JSON, nullable: true, options: ['comment' => '元数据'])]
     private ?array $metadata = null;
 
     #[ORM\ManyToMany(targetEntity: Socket::class, mappedBy: 'rooms')]

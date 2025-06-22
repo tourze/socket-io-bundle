@@ -10,17 +10,16 @@ use SocketIoBundle\Event\SocketEvent;
 use SocketIoBundle\Exception\InvalidPingException;
 use SocketIoBundle\Exception\InvalidTransportException;
 use SocketIoBundle\Exception\PingTimeoutException;
-use SocketIoBundle\Repository\{RoomRepository, SocketRepository};
+use SocketIoBundle\Repository\{SocketRepository};
 use SocketIoBundle\Service\{DeliveryService, RoomService, SocketService};
 use SocketIoBundle\Transport\PollingTransport;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class SocketServiceTest extends TestCase
 {
-    private SocketService|MockObject $socketService;
+    private SocketService $socketService;
     private EntityManagerInterface|MockObject $em;
     private SocketRepository|MockObject $socketRepository;
-    private RoomRepository|MockObject $roomRepository;
     private RoomService|MockObject $roomService;
     private DeliveryService|MockObject $deliveryService;
     private EventDispatcherInterface|MockObject $eventDispatcher;
@@ -29,7 +28,6 @@ class SocketServiceTest extends TestCase
     {
         $this->em = $this->createMock(EntityManagerInterface::class);
         $this->socketRepository = $this->createMock(SocketRepository::class);
-        $this->roomRepository = $this->createMock(RoomRepository::class);
         $this->roomService = $this->createMock(RoomService::class);
         $this->deliveryService = $this->createMock(DeliveryService::class);
         $this->eventDispatcher = $this->createMock(EventDispatcherInterface::class);
@@ -37,7 +35,6 @@ class SocketServiceTest extends TestCase
         $this->socketService = new SocketService(
             $this->em,
             $this->socketRepository,
-            $this->roomRepository,
             $this->roomService,
             $this->deliveryService,
             $this->eventDispatcher
@@ -67,7 +64,7 @@ class SocketServiceTest extends TestCase
                     && $socket->getTransport() === $transport
                     && $socket->getNamespace() === $namespace
                     && $socket->isConnected() === true
-                    && $socket->getLastPingTime() instanceof \DateTime;
+                    && $socket->getLastPingTime() instanceof \DateTimeImmutable;
             }));
             
         $this->em->expects($this->once())
@@ -236,9 +233,7 @@ class SocketServiceTest extends TestCase
         $id1 = $this->socketService->generateUniqueId();
         $id2 = $this->socketService->generateUniqueId();
         
-        // 验证生成的ID是字符串且不相同
-        $this->assertIsString($id1);
-        $this->assertIsString($id2);
+        // 验证生成的ID不为空且不相同
         $this->assertNotEmpty($id1);
         $this->assertNotEmpty($id2);
         $this->assertNotEquals($id1, $id2);
@@ -279,7 +274,6 @@ class SocketServiceTest extends TestCase
             ->setConstructorArgs([
                 $this->em,
                 $this->socketRepository,
-                $this->roomRepository,
                 $this->roomService,
                 $this->deliveryService,
                 $this->eventDispatcher
@@ -319,7 +313,6 @@ class SocketServiceTest extends TestCase
             ->setConstructorArgs([
                 $this->em,
                 $this->socketRepository,
-                $this->roomRepository,
                 $this->roomService,
                 $this->deliveryService,
                 $this->eventDispatcher
@@ -346,7 +339,6 @@ class SocketServiceTest extends TestCase
             ->setConstructorArgs([
                 $this->em,
                 $this->socketRepository,
-                $this->roomRepository,
                 $this->roomService,
                 $this->deliveryService,
                 $this->eventDispatcher
@@ -383,7 +375,6 @@ class SocketServiceTest extends TestCase
             ->setConstructorArgs([
                 $this->em,
                 $this->socketRepository,
-                $this->roomRepository,
                 $this->roomService,
                 $this->deliveryService,
                 $this->eventDispatcher
@@ -421,7 +412,6 @@ class SocketServiceTest extends TestCase
             ->setConstructorArgs([
                 $this->em,
                 $this->socketRepository,
-                $this->roomRepository,
                 $this->roomService,
                 $this->deliveryService,
                 $this->eventDispatcher
@@ -448,13 +438,11 @@ class SocketServiceTest extends TestCase
         $socket = new Socket($sessionId, 'test-socket');
         
         // 设置为很久以前的ping时间
-        $oldDateTime = new \DateTime();
-        $oldDateTime->modify('-60 seconds'); // 60秒前
+        $oldDateTime = new \DateTimeImmutable('-60 seconds'); // 60秒前
         $socket->setLastPingTime($oldDateTime);
         
         // 设置最后投递时间也为很久以前
-        $oldDeliverTime = new \DateTime();
-        $oldDeliverTime->modify('-120 seconds'); // 120秒前
+        $oldDeliverTime = new \DateTimeImmutable('-120 seconds'); // 120秒前
         $socket->setLastDeliverTime($oldDeliverTime);
         
         // 创建模拟传输对象
@@ -468,7 +456,6 @@ class SocketServiceTest extends TestCase
             ->setConstructorArgs([
                 $this->em,
                 $this->socketRepository,
-                $this->roomRepository,
                 $this->roomService,
                 $this->deliveryService,
                 $this->eventDispatcher

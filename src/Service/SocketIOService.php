@@ -54,11 +54,11 @@ class SocketIOService
 
             // 处理已存在的连接
             $socket = $this->socketRepository->findBySessionId($sid);
-            if ($socket) {
+            if ($socket !== null) {
                 try {
                     $this->socketService->checkActive($socket);
                     $transport = $this->socketService->getTransport($socket);
-                    if ($transport) {
+                    if ($transport !== null) {
                         return $transport->handleRequest($request);
                     }
 

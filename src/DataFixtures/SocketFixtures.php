@@ -40,10 +40,10 @@ class SocketFixtures extends AppFixtures
 
         // 设置各种时间
         $createdAt = $this->faker->dateTimeBetween('-30 days', '-1 day');
-        $socket->setCreateTime($createdAt);
+        $socket->setCreateTime(\DateTimeImmutable::createFromMutable($createdAt));
 
-        $lastPingTime = clone $createdAt;
-        $lastPingTime->modify('+' . $this->faker->numberBetween(1, 1000) . ' minutes');
+        $lastPingTime = \DateTimeImmutable::createFromMutable($createdAt);
+        $lastPingTime = $lastPingTime->modify('+' . $this->faker->numberBetween(1, 1000) . ' minutes');
         $socket->setLastPingTime($lastPingTime);
 
         $lastActiveTime = clone $lastPingTime;

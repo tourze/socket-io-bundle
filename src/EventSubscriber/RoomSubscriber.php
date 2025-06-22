@@ -25,7 +25,7 @@ class RoomSubscriber implements EventSubscriberInterface
     public function onSocketEvent(SocketEvent $event): void
     {
         $socket = $event->getSocket();
-        if (!$socket) {
+        if ($socket === null) {
             return;
         }
 

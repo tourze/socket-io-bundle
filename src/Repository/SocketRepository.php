@@ -38,7 +38,7 @@ class SocketRepository extends ServiceEntityRepository
             ->where('s.connected = :connected')
             ->andWhere('s.lastActiveTime > :timeout')
             ->setParameter('connected', true)
-            ->setParameter('timeout', new \DateTime('-30 seconds'))
+            ->setParameter('timeout', new \DateTimeImmutable('-30 seconds'))
             ->getQuery()
             ->getResult();
 
@@ -57,7 +57,7 @@ class SocketRepository extends ServiceEntityRepository
             ->orWhere('s.lastActiveTime < :timeout')
             ->orWhere('s.lastActiveTime IS NULL')
             ->setParameter('connected', false)
-            ->setParameter('timeout', new \DateTime('-30 seconds'))
+            ->setParameter('timeout', new \DateTimeImmutable('-30 seconds'))
             ->getQuery()
             ->execute();
     }
@@ -76,7 +76,7 @@ class SocketRepository extends ServiceEntityRepository
             ->andWhere('s.lastActiveTime > :timeout')
             ->andWhere('s.namespace = :namespace')
             ->setParameter('connected', true)
-            ->setParameter('timeout', new \DateTime('-30 seconds'))
+            ->setParameter('timeout', new \DateTimeImmutable('-30 seconds'))
             ->setParameter('namespace', $namespace)
             ->getQuery()
             ->getResult();

@@ -119,7 +119,7 @@ class SocketPacket
 
     public static function createConnect(?string $namespace = null, ?array $data = null): self
     {
-        return new self(SocketPacketType::CONNECT, $namespace, null, $data ? json_encode($data) : null);
+        return new self(SocketPacketType::CONNECT, $namespace, null, $data !== null ? json_encode($data) : null);
     }
 
     public static function createDisconnect(?string $namespace = null): self

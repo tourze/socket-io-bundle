@@ -8,7 +8,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
-#[Route('/socket.io/test', name: 'socket_io_test', methods: ['GET'])]
 class SocketTestController extends AbstractController
 {
     public function __construct(
@@ -17,6 +16,7 @@ class SocketTestController extends AbstractController
     ) {
     }
 
+    #[Route('/socket.io/test', name: 'socket_io_test', methods: ['GET'])]
     public function __invoke(): Response
     {
         $time = microtime(true);

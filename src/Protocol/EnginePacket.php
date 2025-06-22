@@ -39,7 +39,8 @@ class EnginePacket
     public static function decode(string $packet): self
     {
         $type = EnginePacketType::from((int) $packet[0]);
-        $data = substr($packet, 1) ?: null;
+        $subStr = substr($packet, 1);
+        $data = $subStr !== '' ? $subStr : null;
 
         return new self($type, $data);
     }

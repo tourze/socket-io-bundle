@@ -26,8 +26,8 @@ class RoomTest extends TestCase
         $this->assertEquals($this->namespace, $this->room->getNamespace());
         $this->assertInstanceOf(ArrayCollection::class, $this->room->getSockets());
         $this->assertInstanceOf(ArrayCollection::class, $this->room->getMessages());
-        $this->assertEmpty($this->room->getSockets());
-        $this->assertEmpty($this->room->getMessages());
+        $this->assertCount(0, $this->room->getSockets());
+        $this->assertCount(0, $this->room->getMessages());
     }
 
     public function testGetId(): void
@@ -71,7 +71,7 @@ class RoomTest extends TestCase
         $socket = $this->createMock(Socket::class);
 
         // 测试初始状态
-        $this->assertEmpty($this->room->getSockets());
+        $this->assertCount(0, $this->room->getSockets());
 
         // 测试添加 Socket
         $this->room->addSocket($socket);
@@ -97,7 +97,7 @@ class RoomTest extends TestCase
         $message = $this->createMock(Message::class);
 
         // 测试初始状态
-        $this->assertEmpty($this->room->getMessages());
+        $this->assertCount(0, $this->room->getMessages());
 
         // 测试添加 Message
         $message->expects($this->once())

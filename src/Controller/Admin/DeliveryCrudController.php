@@ -25,7 +25,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\DateTimeFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\EntityFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\TextFilter;
-use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use SocketIoBundle\Entity\Delivery;
 use SocketIoBundle\Enum\MessageStatus;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
@@ -34,14 +33,11 @@ use Symfony\Component\HttpFoundation\Response;
 class DeliveryCrudController extends AbstractCrudController
 {
     private EntityManagerInterface $entityManager;
-    private AdminUrlGenerator $adminUrlGenerator;
 
     public function __construct(
         EntityManagerInterface $entityManager,
-        AdminUrlGenerator $adminUrlGenerator,
     ) {
         $this->entityManager = $entityManager;
-        $this->adminUrlGenerator = $adminUrlGenerator;
     }
 
     public static function getEntityFqcn(): string

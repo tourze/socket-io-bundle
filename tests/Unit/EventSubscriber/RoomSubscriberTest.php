@@ -32,7 +32,6 @@ class RoomSubscriberTest extends TestCase
     {
         $events = RoomSubscriber::getSubscribedEvents();
         
-        $this->assertIsArray($events);
         $this->assertArrayHasKey(SocketEvent::class, $events);
         $this->assertSame('onSocketEvent', $events[SocketEvent::class]);
     }

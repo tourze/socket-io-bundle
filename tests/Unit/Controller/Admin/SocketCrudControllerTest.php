@@ -142,19 +142,22 @@ class SocketCrudControllerTest extends TestCase
         $viewRoomsMethod = $reflection->getMethod('viewRooms');
         $this->assertSame(1, $viewRoomsMethod->getNumberOfParameters());
         $this->assertSame('context', $viewRoomsMethod->getParameters()[0]->getName());
-        $this->assertSame('Symfony\Component\HttpFoundation\Response', $viewRoomsMethod->getReturnType()->getName());
+        $returnType = $viewRoomsMethod->getReturnType();
+        $this->assertSame('Symfony\Component\HttpFoundation\Response', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
         
         // disconnectSocket method
         $disconnectMethod = $reflection->getMethod('disconnectSocket');
         $this->assertSame(1, $disconnectMethod->getNumberOfParameters());
         $this->assertSame('context', $disconnectMethod->getParameters()[0]->getName());
-        $this->assertSame('Symfony\Component\HttpFoundation\Response', $disconnectMethod->getReturnType()->getName());
+        $returnType = $disconnectMethod->getReturnType();
+        $this->assertSame('Symfony\Component\HttpFoundation\Response', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
         
         // refreshStatus method
         $refreshMethod = $reflection->getMethod('refreshStatus');
         $this->assertSame(1, $refreshMethod->getNumberOfParameters());
         $this->assertSame('context', $refreshMethod->getParameters()[0]->getName());
-        $this->assertSame('Symfony\Component\HttpFoundation\Response', $refreshMethod->getReturnType()->getName());
+        $returnType = $refreshMethod->getReturnType();
+        $this->assertSame('Symfony\Component\HttpFoundation\Response', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
     }
 
     public function test_configure_filters_method_signature(): void
@@ -167,7 +170,7 @@ class SocketCrudControllerTest extends TestCase
         
         $returnType = $reflection->getReturnType();
         $this->assertNotNull($returnType);
-        $this->assertSame('EasyCorp\Bundle\EasyAdminBundle\Config\Filters', $returnType->getName());
+        $this->assertSame('EasyCorp\Bundle\EasyAdminBundle\Config\Filters', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
     }
 
     public function test_configure_actions_method_signature(): void
@@ -180,7 +183,7 @@ class SocketCrudControllerTest extends TestCase
         
         $returnType = $reflection->getReturnType();
         $this->assertNotNull($returnType);
-        $this->assertSame('EasyCorp\Bundle\EasyAdminBundle\Config\Actions', $returnType->getName());
+        $this->assertSame('EasyCorp\Bundle\EasyAdminBundle\Config\Actions', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
     }
 
     public function test_configure_crud_method_signature(): void
@@ -193,7 +196,7 @@ class SocketCrudControllerTest extends TestCase
         
         $returnType = $reflection->getReturnType();
         $this->assertNotNull($returnType);
-        $this->assertSame('EasyCorp\Bundle\EasyAdminBundle\Config\Crud', $returnType->getName());
+        $this->assertSame('EasyCorp\Bundle\EasyAdminBundle\Config\Crud', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
     }
 
     public function test_configure_fields_method_signature(): void
@@ -206,7 +209,7 @@ class SocketCrudControllerTest extends TestCase
         
         $returnType = $reflection->getReturnType();
         $this->assertNotNull($returnType);
-        $this->assertSame('iterable', $returnType->getName());
+        $this->assertSame('iterable', $returnType instanceof \ReflectionNamedType ? $returnType->getName() : (string) $returnType);
     }
 
     public function test_docblock_comments_exist_for_custom_actions(): void

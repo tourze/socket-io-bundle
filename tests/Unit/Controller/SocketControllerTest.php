@@ -5,7 +5,6 @@ namespace SocketIoBundle\Tests\Unit\Controller;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use SocketIoBundle\Controller\SocketController;
-use SocketIoBundle\Service\MessageService;
 use SocketIoBundle\Service\SocketIOService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -16,18 +15,15 @@ class SocketControllerTest extends TestCase
     private SocketController $controller;
     private SocketIOService $socketIOService;
     private LoggerInterface $logger;
-    private MessageService $messageService;
 
     protected function setUp(): void
     {
         $this->socketIOService = $this->createMock(SocketIOService::class);
         $this->logger = $this->createMock(LoggerInterface::class);
-        $this->messageService = $this->createMock(MessageService::class);
         
         $this->controller = new SocketController(
             $this->socketIOService,
-            $this->logger,
-            $this->messageService
+            $this->logger
         );
     }
 
@@ -48,9 +44,7 @@ class SocketControllerTest extends TestCase
         $loggerProperty->setAccessible(true);
         $this->assertSame($this->logger, $loggerProperty->getValue($this->controller));
         
-        $messageServiceProperty = $reflection->getProperty('messageService');
-        $messageServiceProperty->setAccessible(true);
-        $this->assertSame($this->messageService, $messageServiceProperty->getValue($this->controller));
+        // messageService 属性不存在于当前控制器实现中
     }
 
     public function test_handle_options_request_returns_cors_response(): void
@@ -58,7 +52,7 @@ class SocketControllerTest extends TestCase
         $request = $this->createMock(Request::class);
         $request->expects($this->once())->method('isMethod')->with('OPTIONS')->willReturn(true);
         
-        $response = $this->controller->handle($request);
+        $response = $this->controller->__invoke($request);
         
         $this->assertInstanceOf(Response::class, $response);
         $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
@@ -79,7 +73,7 @@ class SocketControllerTest extends TestCase
             ->with($request)
             ->willReturn($expectedResponse);
         
-        $response = $this->controller->handle($request);
+        $response = $this->controller->__invoke($request);
         
         $this->assertSame($expectedResponse, $response);
         $this->assertSame('*', $response->headers->get('Access-Control-Allow-Origin'));
@@ -87,14 +81,8 @@ class SocketControllerTest extends TestCase
 
     public function test_handle_exception_logs_error_and_returns_error_response(): void
     {
-        $request = $this->createMock(Request::class);
-        $request->expects($this->once())->method('isMethod')->with('OPTIONS')->willReturn(false);
-        
-        $queryBag = $this->createMock(\Symfony\Component\HttpFoundation\ParameterBag::class);
-        $queryBag->expects($this->once())->method('all')->willReturn(['test' => 'value']);
-        $request->query = $queryBag;
-        
-        $request->expects($this->once())->method('getContent')->willReturn('request body');
+        $request = new Request(['test' => 'value'], [], [], [], [], [], 'request body');
+        $request->setMethod('GET');
         
         $exception = new \RuntimeException('Test exception');
         $this->socketIOService->expects($this->once())
@@ -110,7 +98,7 @@ class SocketControllerTest extends TestCase
                 'body' => 'request body',
             ]);
         
-        $response = $this->controller->handle($request);
+        $response = $this->controller->__invoke($request);
         
         $this->assertSame(Response::HTTP_INTERNAL_SERVER_ERROR, $response->getStatusCode());
         $this->assertSame('application/json', $response->headers->get('Content-Type'));
@@ -120,51 +108,10 @@ class SocketControllerTest extends TestCase
         $this->assertSame(['error' => 'Test exception'], $responseData);
     }
 
-    public function test_test_method_broadcasts_message_successfully(): void
-    {
-        $this->messageService->expects($this->once())
-            ->method('broadcast')
-            ->with('random2', $this->isType('array'))
-            ->willReturn(5);
-        
-        $response = $this->controller->test();
-        
-        $this->assertSame(Response::HTTP_OK, $response->getStatusCode());
-        $this->assertSame('application/json', $response->headers->get('Content-Type'));
-        
-        $responseData = json_decode($response->getContent(), true);
-        $this->assertTrue($responseData['success']);
-        $this->assertStringContainsString('Random message sent to 5 active clients', $responseData['message']);
-        $this->assertIsArray($responseData['data']);
-        $this->assertCount(2, $responseData['data']);
-    }
-
-    public function test_test_method_handles_exception(): void
-    {
-        $exception = new \RuntimeException('Broadcast failed');
-        $this->messageService->expects($this->once())
-            ->method('broadcast')
-            ->willThrowException($exception);
-        
-        $this->logger->expects($this->once())
-            ->method('error')
-            ->with('Test message sending failed', [
-                'exception' => 'Broadcast failed',
-            ]);
-        
-        $response = $this->controller->test();
-        
-        $this->assertSame(Response::HTTP_INTERNAL_SERVER_ERROR, $response->getStatusCode());
-        $this->assertSame('application/json', $response->headers->get('Content-Type'));
-        
-        $responseData = json_decode($response->getContent(), true);
-        $this->assertFalse($responseData['success']);
-        $this->assertSame('Broadcast failed', $responseData['error']);
-    }
 
     public function test_handle_method_has_correct_route_attribute(): void
     {
-        $reflection = new \ReflectionMethod($this->controller, 'handle');
+        $reflection = new \ReflectionMethod($this->controller, '__invoke');
         $attributes = $reflection->getAttributes();
         
         $routeAttribute = null;
@@ -182,25 +129,6 @@ class SocketControllerTest extends TestCase
         $this->assertSame(['GET', 'POST', 'OPTIONS'], $arguments['methods']);
     }
 
-    public function test_test_method_has_correct_route_attribute(): void
-    {
-        $reflection = new \ReflectionMethod($this->controller, 'test');
-        $attributes = $reflection->getAttributes();
-        
-        $routeAttribute = null;
-        foreach ($attributes as $attribute) {
-            if ($attribute->getName() === 'Symfony\Component\Routing\Attribute\Route') {
-                $routeAttribute = $attribute;
-                break;
-            }
-        }
-        
-        $this->assertNotNull($routeAttribute);
-        $arguments = $routeAttribute->getArguments();
-        $this->assertSame('/socket.io/test', $arguments[0]);
-        $this->assertSame('socket_io_test', $arguments['name']);
-        $this->assertSame(['GET'], $arguments['methods']);
-    }
 
     public function test_private_methods_exist(): void
     {

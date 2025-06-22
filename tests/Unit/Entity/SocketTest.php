@@ -26,13 +26,13 @@ class SocketTest extends TestCase
         $this->assertEquals('/', $this->socket->getNamespace());
         $this->assertInstanceOf(ArrayCollection::class, $this->socket->getRooms());
         $this->assertInstanceOf(ArrayCollection::class, $this->socket->getDeliveries());
-        $this->assertEmpty($this->socket->getRooms());
-        $this->assertEmpty($this->socket->getDeliveries());
+        $this->assertCount(0, $this->socket->getRooms());
+        $this->assertCount(0, $this->socket->getDeliveries());
         $this->assertTrue($this->socket->isConnected());
         $this->assertEquals(0, $this->socket->getPollCount());
         $this->assertEquals('polling', $this->socket->getTransport());
-        $this->assertInstanceOf(\DateTime::class, $this->socket->getLastPingTime());
-        $this->assertInstanceOf(\DateTime::class, $this->socket->getLastActiveTime());
+        $this->assertInstanceOf(\DateTimeImmutable::class, $this->socket->getLastPingTime());
+        $this->assertInstanceOf(\DateTimeImmutable::class, $this->socket->getLastActiveTime());
         $this->assertNull($this->socket->getLastDeliverTime());
     }
 
@@ -74,7 +74,7 @@ class SocketTest extends TestCase
 
     public function testGetSetLastPingTime(): void
     {
-        $now = new \DateTime();
+        $now = new \DateTimeImmutable();
         $this->socket->setLastPingTime($now);
         $this->assertSame($now, $this->socket->getLastPingTime());
 
@@ -123,7 +123,7 @@ class SocketTest extends TestCase
         $room2 = new Room('room-2', '/test');
 
         // 测试初始状态
-        $this->assertEmpty($this->socket->getRooms());
+        $this->assertCount(0, $this->socket->getRooms());
         $this->assertFalse($this->socket->isInRoom($room1));
         $this->assertFalse($this->socket->isInRoomByName('room-1'));
 
@@ -152,7 +152,7 @@ class SocketTest extends TestCase
 
         // 测试离开所有房间
         $this->socket->leaveAllRooms();
-        $this->assertEmpty($this->socket->getRooms());
+        $this->assertCount(0, $this->socket->getRooms());
         $this->assertFalse($this->socket->isInRoom($room1));
         $this->assertFalse($this->socket->isInRoom($room2));
 
@@ -170,7 +170,7 @@ class SocketTest extends TestCase
             ->with($this->socket);
 
         // 测试初始状态
-        $this->assertEmpty($this->socket->getDeliveries());
+        $this->assertCount(0, $this->socket->getDeliveries());
 
         // 测试添加 Delivery
         $this->socket->addDelivery($delivery);
@@ -196,7 +196,7 @@ class SocketTest extends TestCase
     {
         $this->assertNull($this->socket->getLastDeliverTime());
 
-        $now = new \DateTime();
+        $now = new \DateTimeImmutable();
         $this->socket->setLastDeliverTime($now);
         $this->assertSame($now, $this->socket->getLastDeliverTime());
 

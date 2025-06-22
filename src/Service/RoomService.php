@@ -35,7 +35,7 @@ class RoomService
     public function findOrCreateRoom(string $name, string $namespace = '/'): Room
     {
         $room = $this->roomRepository->findByNameAndNamespace($name, $namespace);
-        if (!$room) {
+        if ($room === null) {
             $room = new Room($name, $namespace);
             $this->em->persist($room);
             $this->em->flush();
@@ -72,7 +72,7 @@ class RoomService
     public function leaveRoom(Socket $socket, string $roomName): void
     {
         $room = $this->roomRepository->findByNameAndNamespace($roomName, $socket->getNamespace());
-        if ($room && $room->getSockets()->contains($socket)) {
+        if ($room !== null && $room->getSockets()->contains($socket)) {
             $room->removeSocket($socket);
             $this->em->flush();
 
@@ -113,7 +113,7 @@ class RoomService
     {
         $room = $this->roomRepository->findByNameAndNamespace($roomName, $namespace);
 
-        return $room ? $room->getSockets()->toArray() : [];
+        return $room !== null ? $room->getSockets()->toArray() : [];
     }
 
     /**
