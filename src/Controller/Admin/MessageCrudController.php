@@ -136,7 +136,7 @@ class MessageCrudController extends AbstractCrudController
     /**
      * 自定义操作：查看投递记录
      */
-    #[AdminAction('{entityId}/view-deliveries', 'view_deliveries')]
+    #[AdminAction(routePath: '{id}/view-deliveries', routeName: 'view_deliveries')]
     public function viewDeliveries(AdminContext $context): Response
     {
         $message = $context->getEntity()->getInstance();
@@ -156,7 +156,7 @@ class MessageCrudController extends AbstractCrudController
     /**
      * 自定义操作：重新发送消息
      */
-    #[AdminAction('{entityId}/resend', 'resend_message')]
+    #[AdminAction(routePath: '{id}/resend', routeName: 'resend_message')]
     public function resendMessage(AdminContext $context): Response
     {
         $message = $context->getEntity()->getInstance();

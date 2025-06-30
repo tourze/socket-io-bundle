@@ -84,8 +84,9 @@ class SocketCrudControllerTest extends TestCase
         }
         
         $this->assertNotNull($adminActionAttribute);
-        $this->assertSame('{entityId}/view-rooms', $adminActionAttribute->getArguments()[0]);
-        $this->assertSame('view_rooms', $adminActionAttribute->getArguments()[1]);
+        $instance = $adminActionAttribute->newInstance();
+        $this->assertSame('{id}/view-rooms', $instance->routePath);
+        $this->assertSame('view_rooms', $instance->routeName);
     }
 
     public function test_disconnect_socket_action_exists_and_has_correct_attributes(): void
@@ -107,8 +108,9 @@ class SocketCrudControllerTest extends TestCase
         }
         
         $this->assertNotNull($adminActionAttribute);
-        $this->assertSame('{entityId}/disconnect', $adminActionAttribute->getArguments()[0]);
-        $this->assertSame('disconnect_socket', $adminActionAttribute->getArguments()[1]);
+        $instance = $adminActionAttribute->newInstance();
+        $this->assertSame('{id}/disconnect', $instance->routePath);
+        $this->assertSame('disconnect_socket', $instance->routeName);
     }
 
     public function test_refresh_status_action_exists_and_has_correct_attributes(): void
@@ -130,8 +132,9 @@ class SocketCrudControllerTest extends TestCase
         }
         
         $this->assertNotNull($adminActionAttribute);
-        $this->assertSame('{entityId}/refresh-status', $adminActionAttribute->getArguments()[0]);
-        $this->assertSame('refresh_status', $adminActionAttribute->getArguments()[1]);
+        $instance = $adminActionAttribute->newInstance();
+        $this->assertSame('{id}/refresh-status', $instance->routePath);
+        $this->assertSame('refresh_status', $instance->routeName);
     }
 
     public function test_custom_action_methods_have_correct_signatures(): void

@@ -114,9 +114,9 @@ class SocketIOService
         $handshake = [
             'sid' => $sessionId,
             'upgrades' => [], // TODO 目前我们只实现了HTTP轮询
-            'pingInterval' => $_ENV['SOCKET_IO_PING_INTERVAL'] * 1000, // 这里返回的是毫秒
-            'pingTimeout' => $_ENV['SOCKET_IO_PING_TIMEOUT'] * 1000,
-            'maxPayload' => intval($_ENV['SOCKET_IO_MAX_PAYLOAD_SIZE']),
+            'pingInterval' => ($_ENV['SOCKET_IO_PING_INTERVAL'] ?? 25) * 1000, // 这里返回的是毫秒
+            'pingTimeout' => ($_ENV['SOCKET_IO_PING_TIMEOUT'] ?? 5) * 1000,
+            'maxPayload' => intval($_ENV['SOCKET_IO_MAX_PAYLOAD_SIZE'] ?? 1048576),
         ];
 
         // 发送握手响应

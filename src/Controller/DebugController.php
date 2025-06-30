@@ -8,7 +8,7 @@ use Symfony\Component\Routing\Attribute\Route;
 
 class DebugController extends AbstractController
 {
-    #[Route('/socket-io/debug', name: 'socket_io_debug')]
+    #[Route(path: '/socket-io/debug', name: 'socket_io_debug')]
     public function __invoke(): Response
     {
         return $this->render('@SocketIo/debug.html.twig');

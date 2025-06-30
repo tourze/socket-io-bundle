@@ -16,7 +16,7 @@ class SocketTestController extends AbstractController
     ) {
     }
 
-    #[Route('/socket.io/test', name: 'socket_io_test', methods: ['GET'])]
+    #[Route(path: '/socket.io/test', name: 'socket_io_test', methods: ['GET'])]
     public function __invoke(): Response
     {
         $time = microtime(true);

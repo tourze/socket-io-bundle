@@ -129,8 +129,9 @@ class RoomCrudControllerTest extends TestCase
         }
         
         $this->assertNotNull($adminActionAttribute);
-        $this->assertSame('{entityId}/view-sockets', $adminActionAttribute->getArguments()[0]);
-        $this->assertSame('view_sockets', $adminActionAttribute->getArguments()[1]);
+        $instance = $adminActionAttribute->newInstance();
+        $this->assertSame('{id}/view-sockets', $instance->routePath);
+        $this->assertSame('view_sockets', $instance->routeName);
     }
 
     public function test_view_messages_action_exists_and_has_correct_attributes(): void
@@ -152,8 +153,9 @@ class RoomCrudControllerTest extends TestCase
         }
         
         $this->assertNotNull($adminActionAttribute);
-        $this->assertSame('{entityId}/view-messages', $adminActionAttribute->getArguments()[0]);
-        $this->assertSame('view_messages', $adminActionAttribute->getArguments()[1]);
+        $instance = $adminActionAttribute->newInstance();
+        $this->assertSame('{id}/view-messages', $instance->routePath);
+        $this->assertSame('view_messages', $instance->routeName);
     }
 
     public function test_broadcast_message_form_action_exists_and_has_correct_attributes(): void
@@ -175,8 +177,9 @@ class RoomCrudControllerTest extends TestCase
         }
         
         $this->assertNotNull($adminActionAttribute);
-        $this->assertSame('{entityId}/broadcast', $adminActionAttribute->getArguments()[0]);
-        $this->assertSame('broadcast_message_form', $adminActionAttribute->getArguments()[1]);
+        $instance = $adminActionAttribute->newInstance();
+        $this->assertSame('{id}/broadcast', $instance->routePath);
+        $this->assertSame('broadcast_message_form', $instance->routeName);
     }
 
     public function test_custom_action_methods_have_correct_signatures(): void

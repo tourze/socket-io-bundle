@@ -17,7 +17,7 @@ class SocketController extends AbstractController
     ) {
     }
 
-    #[Route('/socket.io/', name: 'socket_io_endpoint', methods: ['GET', 'POST', 'OPTIONS'])]
+    #[Route(path: '/socket.io/', name: 'socket_io_endpoint', methods: ['GET', 'POST', 'OPTIONS'])]
     public function __invoke(Request $request): Response
     {
         try {

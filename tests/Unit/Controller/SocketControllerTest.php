@@ -123,10 +123,10 @@ class SocketControllerTest extends TestCase
         }
         
         $this->assertNotNull($routeAttribute);
-        $arguments = $routeAttribute->getArguments();
-        $this->assertSame('/socket.io/', $arguments[0]);
-        $this->assertSame('socket_io_endpoint', $arguments['name']);
-        $this->assertSame(['GET', 'POST', 'OPTIONS'], $arguments['methods']);
+        $instance = $routeAttribute->newInstance();
+        $this->assertSame('/socket.io/', $instance->getPath());
+        $this->assertSame('socket_io_endpoint', $instance->getName());
+        $this->assertSame(['GET', 'POST', 'OPTIONS'], $instance->getMethods());
     }
 
 

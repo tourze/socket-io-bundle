@@ -8,7 +8,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use SocketIoBundle\Repository\SocketRepository;
 use Tourze\DoctrineIndexedBundle\Attribute\IndexColumn;
-use Tourze\DoctrineSnowflakeBundle\Service\SnowflakeIdGenerator;
+use Tourze\DoctrineSnowflakeBundle\Traits\SnowflakeKeyAware;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 
 #[ORM\Entity(repositoryClass: SocketRepository::class)]
@@ -16,11 +16,7 @@ use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 class Socket implements \Stringable
 {
     use TimestampableAware;
-    #[ORM\Id]
-    #[ORM\GeneratedValue(strategy: 'CUSTOM')]
-    #[ORM\CustomIdGenerator(SnowflakeIdGenerator::class)]
-    #[ORM\Column(type: Types::BIGINT, nullable: false, options: ['comment' => 'ID'])]
-    private ?string $id = null;
+    use SnowflakeKeyAware;
 
     #[IndexColumn]
     #[ORM\Column(type: Types::STRING, length: 64, unique: true, options: ['comment' => '会话 ID'])]
@@ -80,11 +76,6 @@ class Socket implements \Stringable
         $this->deliveries = new ArrayCollection();
         $this->lastPingTime = new \DateTimeImmutable();
         $this->lastActiveTime = new \DateTimeImmutable();
-    }
-
-    public function getId(): ?string
-    {
-        return $this->id;
     }
 
     public function getSessionId(): string

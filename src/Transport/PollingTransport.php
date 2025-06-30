@@ -14,6 +14,9 @@ use SocketIoBundle\Repository\SocketRepository;
 use SocketIoBundle\Service\DeliveryService;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use SocketIoBundle\Exception\InvalidSessionException;
+use SocketIoBundle\Exception\ConnectionClosedException;
+use SocketIoBundle\Exception\InvalidPayloadException;
 
 class PollingTransport implements TransportInterface
 {
@@ -155,7 +158,7 @@ class PollingTransport implements TransportInterface
     {
         $socket = $this->socketRepository->findBySessionId($this->sessionId);
         if ($socket === null) {
-            throw new \RuntimeException('Invalid session', Response::HTTP_BAD_REQUEST);
+            throw new InvalidSessionException('Invalid session', Response::HTTP_BAD_REQUEST);
         }
 
         $socket->incrementPollCount();
@@ -204,7 +207,7 @@ class PollingTransport implements TransportInterface
             usleep(100000); // 100ms
 
             if (!$this->isSocketStillValid($socket)) {
-                throw new \RuntimeException('Connection closed', Response::HTTP_BAD_REQUEST);
+                throw new ConnectionClosedException('Connection closed', Response::HTTP_BAD_REQUEST);
             }
         }
 
@@ -374,7 +377,7 @@ class PollingTransport implements TransportInterface
             if ('b' === $chunk[0]) {
                 $decoded = base64_decode(substr($chunk, 1));
                 if (false === $decoded) {
-                    throw new \InvalidArgumentException('Invalid base64 payload');
+                    throw new InvalidPayloadException('Invalid base64 payload');
                 }
                 $packets[] = $decoded;
             } else {
@@ -390,7 +393,7 @@ class PollingTransport implements TransportInterface
         if (preg_match('/d=(.*)/', $content, $matches)) {
             return urldecode($matches[1]);
         }
-        throw new \InvalidArgumentException('Invalid JSONP payload');
+        throw new InvalidPayloadException('Invalid JSONP payload');
     }
 
     private function createResponse(string $enginePackage): Response

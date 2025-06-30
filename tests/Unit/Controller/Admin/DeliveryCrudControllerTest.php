@@ -94,29 +94,6 @@ class DeliveryCrudControllerTest extends TestCase
         }
     }
 
-    public function test_view_message_action_exists_and_has_correct_attributes(): void
-    {
-        $reflection = new \ReflectionClass(DeliveryCrudController::class);
-        
-        if ($reflection->hasMethod('viewMessage')) {
-            $this->assertTrue($reflection->getMethod('viewMessage')->isPublic());
-            
-            $method = $reflection->getMethod('viewMessage');
-            $attributes = $method->getAttributes();
-            
-            $hasAdminActionAttribute = false;
-            foreach ($attributes as $attribute) {
-                if ($attribute->getName() === 'EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminAction') {
-                    $hasAdminActionAttribute = true;
-                    break;
-                }
-            }
-            
-            $this->assertTrue($hasAdminActionAttribute, 'viewMessage method should have AdminAction attribute');
-        } else {
-            $this->markTestSkipped('viewMessage method does not exist in this controller');
-        }
-    }
 
     public function test_configure_actions_method_returns_correct_type(): void
     {
@@ -149,7 +126,7 @@ class DeliveryCrudControllerTest extends TestCase
     {
         $reflection = new \ReflectionClass(DeliveryCrudController::class);
         
-        $customMethods = ['retryDelivery', 'viewMessage'];
+        $customMethods = ['retryDelivery'];
         
         foreach ($customMethods as $methodName) {
             if ($reflection->hasMethod($methodName)) {

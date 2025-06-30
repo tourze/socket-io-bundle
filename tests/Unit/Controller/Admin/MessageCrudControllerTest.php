@@ -89,8 +89,9 @@ class MessageCrudControllerTest extends TestCase
         }
         
         $this->assertNotNull($adminActionAttribute);
-        $this->assertSame('{entityId}/view-deliveries', $adminActionAttribute->getArguments()[0]);
-        $this->assertSame('view_deliveries', $adminActionAttribute->getArguments()[1]);
+        $instance = $adminActionAttribute->newInstance();
+        $this->assertSame('{id}/view-deliveries', $instance->routePath);
+        $this->assertSame('view_deliveries', $instance->routeName);
     }
 
     public function test_resend_message_action_exists_and_has_correct_attributes(): void
@@ -112,8 +113,9 @@ class MessageCrudControllerTest extends TestCase
         }
         
         $this->assertNotNull($adminActionAttribute);
-        $this->assertSame('{entityId}/resend', $adminActionAttribute->getArguments()[0]);
-        $this->assertSame('resend_message', $adminActionAttribute->getArguments()[1]);
+        $instance = $adminActionAttribute->newInstance();
+        $this->assertSame('{id}/resend', $instance->routePath);
+        $this->assertSame('resend_message', $instance->routeName);
     }
 
     public function test_custom_action_methods_have_correct_signatures(): void

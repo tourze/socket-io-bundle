@@ -169,7 +169,7 @@ class DeliveryCrudController extends AbstractCrudController
     /**
      * 自定义操作：重试投递
      */
-    #[AdminAction('{entityId}/retry', 'retry_delivery')]
+    #[AdminAction(routePath: '{id}/retry', routeName: 'retry_delivery')]
     public function retryDelivery(AdminContext $context): Response
     {
         $delivery = $context->getEntity()->getInstance();
@@ -185,7 +185,7 @@ class DeliveryCrudController extends AbstractCrudController
     /**
      * 自定义操作：标记为已投递
      */
-    #[AdminAction('{entityId}/mark-delivered', 'mark_delivered')]
+    #[AdminAction(routePath: '{id}/mark-delivered', routeName: 'mark_delivered')]
     public function markDelivered(AdminContext $context): Response
     {
         $delivery = $context->getEntity()->getInstance();
@@ -200,7 +200,7 @@ class DeliveryCrudController extends AbstractCrudController
     /**
      * 自定义操作：标记为失败
      */
-    #[AdminAction('{entityId}/mark-failed', 'mark_failed')]
+    #[AdminAction(routePath: '{id}/mark-failed', routeName: 'mark_failed')]
     public function markFailed(AdminContext $context): Response
     {
         $delivery = $context->getEntity()->getInstance();

@@ -6,7 +6,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use SocketIoBundle\Enum\MessageStatus;
 use SocketIoBundle\Repository\DeliveryRepository;
-use Tourze\DoctrineSnowflakeBundle\Service\SnowflakeIdGenerator;
+use Tourze\DoctrineSnowflakeBundle\Traits\SnowflakeKeyAware;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 
 #[ORM\Entity(repositoryClass: DeliveryRepository::class)]
@@ -15,11 +15,7 @@ use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 class Delivery implements \Stringable
 {
     use TimestampableAware;
-    #[ORM\Id]
-    #[ORM\GeneratedValue(strategy: 'CUSTOM')]
-    #[ORM\CustomIdGenerator(SnowflakeIdGenerator::class)]
-    #[ORM\Column(type: Types::BIGINT, nullable: false, options: ['comment' => 'ID'])]
-    private ?string $id = null;
+    use SnowflakeKeyAware;
 
     #[ORM\ManyToOne(targetEntity: Socket::class, inversedBy: 'deliveries')]
     #[ORM\JoinColumn(name: 'socket_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
@@ -40,11 +36,6 @@ class Delivery implements \Stringable
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '投递时间'])]
     private ?\DateTimeImmutable $deliveredAt = null;
-
-    public function getId(): ?string
-    {
-        return $this->id;
-    }
 
     public function getSocket(): Socket
     {

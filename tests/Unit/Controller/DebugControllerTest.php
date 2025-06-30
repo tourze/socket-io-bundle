@@ -106,9 +106,9 @@ class DebugControllerTest extends TestCase
         
         $this->assertNotNull($routeAttribute, 'Route attribute should be present');
         
-        $arguments = $routeAttribute->getArguments();
-        $this->assertSame('/socket-io/debug', $arguments[0]);
-        $this->assertSame('socket_io_debug', $arguments['name']);
+        $instance = $routeAttribute->newInstance();
+        $this->assertSame('/socket-io/debug', $instance->getPath());
+        $this->assertSame('socket_io_debug', $instance->getName());
     }
 
     public function test_controller_class_structure(): void

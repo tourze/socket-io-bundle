@@ -140,7 +140,7 @@ class RoomCrudController extends AbstractCrudController
     /**
      * 自定义操作：查看Socket连接
      */
-    #[AdminAction('{entityId}/view-sockets', 'view_sockets')]
+    #[AdminAction(routePath: '{id}/view-sockets', routeName: 'view_sockets')]
     public function viewSockets(AdminContext $context): Response
     {
         $room = $context->getEntity()->getInstance();
@@ -160,7 +160,7 @@ class RoomCrudController extends AbstractCrudController
     /**
      * 自定义操作：查看消息
      */
-    #[AdminAction('{entityId}/view-messages', 'view_messages')]
+    #[AdminAction(routePath: '{id}/view-messages', routeName: 'view_messages')]
     public function viewMessages(AdminContext $context): Response
     {
         $room = $context->getEntity()->getInstance();
@@ -180,7 +180,7 @@ class RoomCrudController extends AbstractCrudController
     /**
      * 自定义操作：广播消息表单页面
      */
-    #[AdminAction('{entityId}/broadcast', 'broadcast_message_form')]
+    #[AdminAction(routePath: '{id}/broadcast', routeName: 'broadcast_message_form')]
     public function broadcastMessageForm(AdminContext $context): Response
     {
         // 这里应该返回一个表单页面，但为简单起见，我们直接重定向到消息创建页面

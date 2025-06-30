@@ -7,7 +7,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use SocketIoBundle\Repository\RoomRepository;
-use Tourze\DoctrineSnowflakeBundle\Service\SnowflakeIdGenerator;
+use Tourze\DoctrineSnowflakeBundle\Traits\SnowflakeKeyAware;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 
 #[ORM\Entity(repositoryClass: RoomRepository::class)]
@@ -16,11 +16,7 @@ use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 class Room implements \Stringable
 {
     use TimestampableAware;
-    #[ORM\Id]
-    #[ORM\GeneratedValue(strategy: 'CUSTOM')]
-    #[ORM\CustomIdGenerator(SnowflakeIdGenerator::class)]
-    #[ORM\Column(type: Types::BIGINT, nullable: false, options: ['comment' => 'ID'])]
-    private ?string $id = null;
+    use SnowflakeKeyAware;
 
     #[ORM\Column(type: Types::STRING, length: 255, options: ['comment' => '房间名称'])]
     private string $name;
@@ -43,11 +39,6 @@ class Room implements \Stringable
         $this->messages = new ArrayCollection();
         $this->name = $name;
         $this->namespace = $namespace;
-    }
-
-    public function getId(): ?string
-    {
-        return $this->id;
     }
 
     public function getName(): string
