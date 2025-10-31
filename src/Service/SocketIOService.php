@@ -4,7 +4,6 @@ namespace SocketIoBundle\Service;
 
 use SocketIoBundle\Entity\Socket;
 use SocketIoBundle\Event\SocketEvent;
-use SocketIoBundle\Exception\StatusException;
 use SocketIoBundle\Protocol\EnginePacket;
 use SocketIoBundle\Repository\SocketRepository;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
@@ -53,17 +52,17 @@ class SocketIOService
             }
 
             // 处理已存在的连接
-            $socket = $this->socketRepository->findBySessionId($sid);
-            if ($socket !== null) {
+            $socket = $this->socketRepository->findBySessionId((string) $sid);
+            if (null !== $socket) {
                 try {
                     $this->socketService->checkActive($socket);
                     $transport = $this->socketService->getTransport($socket);
-                    if ($transport !== null) {
+                    if (null !== $transport) {
                         return $transport->handleRequest($request);
                     }
 
                     return new Response('Transport error', Response::HTTP_INTERNAL_SERVER_ERROR);
-                } catch (StatusException $e) {
+                } catch (\RuntimeException $e) {
                     $this->socketService->disconnect($socket);
 
                     return new Response('Session expired: ' . $e->getMessage(), Response::HTTP_GONE);
@@ -86,7 +85,7 @@ class SocketIOService
         foreach ($sockets as $socket) {
             try {
                 $this->socketService->checkActive($socket);
-            } catch (StatusException $e) {
+            } catch (\RuntimeException $e) {
                 $this->socketService->disconnect($socket);
             }
         }
@@ -111,12 +110,27 @@ class SocketIOService
         $this->dispatchEvent('socket.connect', $socket);
 
         // 准备握手数据
+        $pingInterval = $_ENV['SOCKET_IO_PING_INTERVAL'] ?? '25';
+        $pingTimeout = $_ENV['SOCKET_IO_PING_TIMEOUT'] ?? '5';
+        $maxPayload = $_ENV['SOCKET_IO_MAX_PAYLOAD_SIZE'] ?? '1048576';
+
+        // 确保环境变量是标量类型
+        if (!is_scalar($pingInterval)) {
+            $pingInterval = '25';
+        }
+        if (!is_scalar($pingTimeout)) {
+            $pingTimeout = '5';
+        }
+        if (!is_scalar($maxPayload)) {
+            $maxPayload = '1048576';
+        }
+
         $handshake = [
             'sid' => $sessionId,
             'upgrades' => [], // TODO 目前我们只实现了HTTP轮询
-            'pingInterval' => ($_ENV['SOCKET_IO_PING_INTERVAL'] ?? 25) * 1000, // 这里返回的是毫秒
-            'pingTimeout' => ($_ENV['SOCKET_IO_PING_TIMEOUT'] ?? 5) * 1000,
-            'maxPayload' => intval($_ENV['SOCKET_IO_MAX_PAYLOAD_SIZE'] ?? 1048576),
+            'pingInterval' => intval($pingInterval) * 1000, // 这里返回的是毫秒
+            'pingTimeout' => intval($pingTimeout) * 1000,
+            'maxPayload' => intval($maxPayload),
         ];
 
         // 发送握手响应
@@ -128,6 +142,8 @@ class SocketIOService
 
     /**
      * 分发Socket.IO事件
+     *
+     * @param array<mixed> $data
      */
     private function dispatchEvent(string $event, ?Socket $socket, array $data = []): void
     {

@@ -6,12 +6,13 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use SocketIoBundle\Enum\MessageStatus;
 use SocketIoBundle\Repository\DeliveryRepository;
+use Symfony\Component\Validator\Constraints as Assert;
+use Tourze\DoctrineIndexedBundle\Attribute\IndexColumn;
 use Tourze\DoctrineSnowflakeBundle\Traits\SnowflakeKeyAware;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
 
 #[ORM\Entity(repositoryClass: DeliveryRepository::class)]
 #[ORM\Table(name: 'ims_socket_io_delivery', options: ['comment' => 'Socket.IO消息投递记录表'])]
-#[ORM\Index(name: 'idx_delivery_status', columns: ['status'])]
 class Delivery implements \Stringable
 {
     use TimestampableAware;
@@ -26,15 +27,20 @@ class Delivery implements \Stringable
     private Message $message;
 
     #[ORM\Column(type: Types::INTEGER, enumType: MessageStatus::class, options: ['comment' => '投递状态'])]
+    #[Assert\Choice(callback: [MessageStatus::class, 'cases'])]
+    #[IndexColumn]
     private MessageStatus $status = MessageStatus::PENDING;
 
     #[ORM\Column(type: Types::TEXT, nullable: true, options: ['comment' => '错误信息'])]
+    #[Assert\Length(max: 65535)]
     private ?string $error = null;
 
     #[ORM\Column(type: Types::INTEGER, options: ['comment' => '重试次数'])]
+    #[Assert\Range(min: 0, max: 100)]
     private int $retries = 0;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '投递时间'])]
+    #[Assert\Type(type: \DateTimeImmutable::class)]
     private ?\DateTimeImmutable $deliveredAt = null;
 
     public function getSocket(): Socket
@@ -42,11 +48,9 @@ class Delivery implements \Stringable
         return $this->socket;
     }
 
-    public function setSocket(Socket $socket): self
+    public function setSocket(Socket $socket): void
     {
         $this->socket = $socket;
-
-        return $this;
     }
 
     public function getMessage(): Message
@@ -54,11 +58,9 @@ class Delivery implements \Stringable
         return $this->message;
     }
 
-    public function setMessage(Message $message): self
+    public function setMessage(Message $message): void
     {
         $this->message = $message;
-
-        return $this;
     }
 
     public function getStatus(): MessageStatus
@@ -66,14 +68,12 @@ class Delivery implements \Stringable
         return $this->status;
     }
 
-    public function setStatus(MessageStatus $status): self
+    public function setStatus(MessageStatus $status): void
     {
         $this->status = $status;
         if (MessageStatus::DELIVERED === $status) {
             $this->deliveredAt = new \DateTimeImmutable();
         }
-
-        return $this;
     }
 
     public function getError(): ?string
@@ -81,11 +81,9 @@ class Delivery implements \Stringable
         return $this->error;
     }
 
-    public function setError(?string $error): self
+    public function setError(?string $error): void
     {
         $this->error = $error;
-
-        return $this;
     }
 
     public function getRetries(): int
@@ -93,11 +91,9 @@ class Delivery implements \Stringable
         return $this->retries;
     }
 
-    public function incrementRetries(): self
+    public function incrementRetries(): void
     {
         ++$this->retries;
-
-        return $this;
     }
 
     public function getDeliveredAt(): ?\DateTimeImmutable

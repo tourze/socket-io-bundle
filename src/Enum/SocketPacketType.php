@@ -1,6 +1,7 @@
 <?php
 
 namespace SocketIoBundle\Enum;
+
 use Tourze\EnumExtra\Itemable;
 use Tourze\EnumExtra\ItemTrait;
 use Tourze\EnumExtra\Labelable;
@@ -11,6 +12,7 @@ enum SocketPacketType: int implements Itemable, Labelable, Selectable
 {
     use ItemTrait;
     use SelectTrait;
+
     case CONNECT = 0;
     case DISCONNECT = 1;
     case EVENT = 2;

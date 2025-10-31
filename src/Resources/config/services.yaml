@@ -6,8 +6,6 @@ services:
 
   SocketIoBundle\Command\:
     resource: '../../Command/'
-  SocketIoBundle\DataFixtures\:
-    resource: '../../DataFixtures/'
   SocketIoBundle\Controller\:
     resource: '../../Controller/'
   SocketIoBundle\EventSubscriber\:
@@ -16,8 +14,3 @@ services:
     resource: '../../Repository/'
   SocketIoBundle\Service\:
     resource: '../../Service/'
-    
-  # 明确注册 AdminMenu 服务
-  SocketIoBundle\Service\AdminMenu:
-    tags:
-      - { name: 'easy_admin_menu.provider', priority: 10 }

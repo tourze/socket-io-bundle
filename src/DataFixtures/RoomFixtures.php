@@ -17,7 +17,7 @@ class RoomFixtures extends AppFixtures implements DependentFixtureInterface
         $rooms = [];
 
         // 创建房间
-        for ($i = 0; $i < self::ROOM_COUNT; $i++) {
+        for ($i = 0; $i < self::ROOM_COUNT; ++$i) {
             $room = $this->createRoom();
             $manager->persist($room);
             $this->addReference(self::ROOM_REFERENCE_PREFIX . $i, $room);
@@ -34,7 +34,9 @@ class RoomFixtures extends AppFixtures implements DependentFixtureInterface
         ];
 
         foreach ($specialRooms as $index => $data) {
-            $room = new Room($data['name'], $data['namespace']);
+            $room = new Room();
+            $room->setName($data['name']);
+            $room->setNamespace($data['namespace']);
             $room->setMetadata($this->generateRoomMetadata());
             $manager->persist($room);
             $this->addReference(self::ROOM_REFERENCE_PREFIX . (self::ROOM_COUNT + $index), $room);
@@ -42,7 +44,7 @@ class RoomFixtures extends AppFixtures implements DependentFixtureInterface
         }
 
         // 将Socket添加到房间
-        for ($i = 0; $i < SocketFixtures::SOCKET_COUNT; $i++) {
+        for ($i = 0; $i < SocketFixtures::SOCKET_COUNT; ++$i) {
             $socket = $this->getReference(SocketFixtures::SOCKET_REFERENCE_PREFIX . $i, Socket::class);
 
             // 每个Socket加入1-4个随机房间
@@ -53,7 +55,7 @@ class RoomFixtures extends AppFixtures implements DependentFixtureInterface
             $selectedRooms = array_slice($rooms, 0, min($roomCount, count($rooms)));
 
             foreach ($selectedRooms as $room) {
-                if ($room->getNamespace() === $socket->getNamespace() || $room->getNamespace() === '/') {
+                if ($room->getNamespace() === $socket->getNamespace() || '/' === $room->getNamespace()) {
                     $socket->joinRoom($room);
                 }
             }
@@ -67,28 +69,34 @@ class RoomFixtures extends AppFixtures implements DependentFixtureInterface
         $namespace = $this->generateNamespace();
         $name = $this->generateRoomName();
 
-        $room = new Room($name, $namespace);
+        $room = new Room();
+        $room->setName($name);
+        $room->setNamespace($namespace);
         $room->setMetadata($this->generateRoomMetadata());
 
         // 设置创建时间
-        $createdAt = $this->faker->dateTimeBetween('-60 days', '-1 day');
-        $room->setCreateTime(\DateTimeImmutable::createFromMutable($createdAt));
+        $createTime = $this->faker->dateTimeBetween('-60 days', '-1 day');
+        $room->setCreateTime(\DateTimeImmutable::createFromMutable($createTime));
 
         return $room;
     }
 
     private function generateRoomName(): string
     {
-        $prefix = $this->faker->randomElement(['room', 'channel', 'group', 'team', '', '']);
+        $prefixElement = $this->faker->randomElement(['room', 'channel', 'group', 'team', '', '']);
+        $prefix = is_string($prefixElement) ? $prefixElement : '';
         $name = $this->faker->word();
 
         if ($this->faker->boolean(30)) {
             $name .= '-' . $this->faker->numberBetween(1, 999);
         }
 
-        return $prefix !== '' ? "{$prefix}-{$name}" : $name;
+        return '' !== $prefix ? "{$prefix}-{$name}" : $name;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function generateRoomMetadata(): array
     {
         $types = ['public', 'private', 'protected', 'ephemeral'];
@@ -103,7 +111,7 @@ class RoomFixtures extends AppFixtures implements DependentFixtureInterface
                 'persistent' => $this->faker->boolean(80),
                 'autoDelete' => $this->faker->boolean(20),
                 'joinable' => $this->faker->boolean(90),
-            ]
+            ],
         ];
     }
 

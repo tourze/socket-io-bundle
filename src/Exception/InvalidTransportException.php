@@ -2,7 +2,7 @@
 
 namespace SocketIoBundle\Exception;
 
-class InvalidTransportException extends StatusException
+class InvalidTransportException extends \RuntimeException
 {
     public function __construct(string $sessionId)
     {

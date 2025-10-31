@@ -6,14 +6,10 @@ use SocketIoBundle\Enum\EnginePacketType;
 
 class EnginePacket
 {
-    private EnginePacketType $type;
-
-    private ?string $data;
-
-    public function __construct(EnginePacketType $type, ?string $data = null)
-    {
-        $this->type = $type;
-        $this->data = $data;
+    public function __construct(
+        private readonly EnginePacketType $type,
+        private readonly ?string $data = null,
+    ) {
     }
 
     public function getType(): EnginePacketType
@@ -40,14 +36,22 @@ class EnginePacket
     {
         $type = EnginePacketType::from((int) $packet[0]);
         $subStr = substr($packet, 1);
-        $data = $subStr !== '' ? $subStr : null;
+        $data = '' !== $subStr ? $subStr : null;
 
         return new self($type, $data);
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public static function createOpen(array $data): self
     {
-        return new self(EnginePacketType::OPEN, json_encode($data));
+        $encodedData = json_encode($data);
+        if (false === $encodedData) {
+            throw new \InvalidArgumentException('Failed to encode data to JSON');
+        }
+
+        return new self(EnginePacketType::OPEN, $encodedData);
     }
 
     public static function createClose(): self

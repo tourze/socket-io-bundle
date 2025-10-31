@@ -34,6 +34,7 @@ class MessageService
 
     /**
      * 广播消息到所有连接
+     * @param array<string, mixed> $data
      */
     public function broadcast(string $event, array $data, ?Socket $sender = null): int
     {
@@ -51,35 +52,69 @@ class MessageService
 
     /**
      * 发送消息到多个房间
+     * @param array<Room|string> $rooms
+     * @param array<string, mixed> $data
      */
     public function sendToRooms(array $rooms, string $event, array $data, ?Socket $sender = null): void
     {
         $message = $this->createMessage($event, $data, $sender);
+        $this->addRoomsToMessage($message, $rooms);
+        $uniqueSockets = $this->collectUniqueSocketsFromRooms($message);
+        $this->dispatchMessageToSockets($message, $uniqueSockets);
+        $this->em->flush();
+    }
 
+    /**
+     * @param array<Room|string> $rooms
+     */
+    private function addRoomsToMessage(Message $message, array $rooms): void
+    {
         foreach ($rooms as $room) {
-            $message->addRoom($room instanceof Room ? $room : $this->roomService->findOrCreateRoom($room));
+            $roomEntity = $room instanceof Room ? $room : $this->roomService->findOrCreateRoom($room);
+            $message->addRoom($roomEntity);
         }
+    }
 
+    /**
+     * @return array<string, Socket>
+     */
+    private function collectUniqueSocketsFromRooms(Message $message): array
+    {
         $sockets = [];
+
         foreach ($message->getRooms() as $room) {
             foreach ($room->getSockets() as $socket) {
-                if (isset($sockets[$socket->getSocketId()])) {
-                    continue;
-                }
-                if ($socket === $message->getSender()) {
+                if ($this->shouldSkipSocket($socket, $message, $sockets)) {
                     continue;
                 }
                 $sockets[$socket->getSocketId()] = $socket;
             }
         }
 
+        return $sockets;
+    }
+
+    /**
+     * @param array<string, Socket> $existingSockets
+     */
+    private function shouldSkipSocket(Socket $socket, Message $message, array $existingSockets): bool
+    {
+        return isset($existingSockets[$socket->getSocketId()]) || $socket === $message->getSender();
+    }
+
+    /**
+     * @param array<string, Socket> $sockets
+     */
+    private function dispatchMessageToSockets(Message $message, array $sockets): void
+    {
         foreach ($sockets as $socket) {
             $this->dispatchMessageToSocket($message, $socket);
         }
-
-        $this->em->flush();
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public function sendToSocket(Socket $socket, string $event, array $data, ?Socket $sender = null): void
     {
         $message = $this->createMessage($event, $data, $sender);
@@ -121,8 +156,8 @@ class MessageService
      */
     public function markFailed(Delivery $delivery, string $error): void
     {
-        $delivery->setStatus(MessageStatus::FAILED)
-            ->setError($error);
+        $delivery->setStatus(MessageStatus::FAILED);
+        $delivery->setError($error);
         $this->em->flush();
     }
 
@@ -176,7 +211,7 @@ class MessageService
      * 创建新消息
      *
      * @param string      $event  事件名称
-     * @param array       $data   消息数据
+     * @param array<string, mixed> $data   消息数据
      * @param Socket|null $sender 发送者连接
      *
      * @return Message 新创建的消息实体
@@ -184,9 +219,9 @@ class MessageService
     private function createMessage(string $event, array $data, ?Socket $sender = null): Message
     {
         $message = new Message();
-        $message->setEvent($event)
-            ->setData($data)
-            ->setSender($sender);
+        $message->setEvent($event);
+        $message->setData($data);
+        $message->setSender($sender);
 
         $this->em->persist($message);
         $this->em->flush();
@@ -205,9 +240,9 @@ class MessageService
     private function createDelivery(Message $message, Socket $socket): Delivery
     {
         $delivery = new Delivery();
-        $delivery->setMessage($message)
-            ->setSocket($socket)
-            ->setStatus(MessageStatus::PENDING);
+        $delivery->setMessage($message);
+        $delivery->setSocket($socket);
+        $delivery->setStatus(MessageStatus::PENDING);
 
         $this->em->persist($delivery);
 

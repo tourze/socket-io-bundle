@@ -7,6 +7,9 @@ use Symfony\Contracts\EventDispatcher\Event;
 
 class SocketEvent extends Event
 {
+    /**
+     * @param array<mixed> $data
+     */
     public function __construct(
         private readonly string $name,
         private readonly ?Socket $socket,
@@ -24,6 +27,9 @@ class SocketEvent extends Event
         return $this->socket;
     }
 
+    /**
+     * @return array<mixed>
+     */
     public function getData(): array
     {
         return $this->data;

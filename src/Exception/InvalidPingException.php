@@ -2,7 +2,7 @@
 
 namespace SocketIoBundle\Exception;
 
-class InvalidPingException extends StatusException
+class InvalidPingException extends \RuntimeException
 {
     public function __construct(string $sessionId)
     {

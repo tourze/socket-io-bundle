@@ -2,6 +2,7 @@
 
 namespace SocketIoBundle\Controller;
 
+use Monolog\Attribute\WithMonologChannel;
 use Psr\Log\LoggerInterface;
 use SocketIoBundle\Service\SocketIOService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -9,7 +10,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
-class SocketController extends AbstractController
+#[WithMonologChannel(channel: 'socket_io')]
+final class SocketController extends AbstractController
 {
     public function __construct(
         private readonly SocketIOService $socketIO,
@@ -41,8 +43,9 @@ class SocketController extends AbstractController
             ]);
 
             // 错误处理
+            $errorJson = json_encode(['error' => $e->getMessage()]);
             $response = new Response(
-                json_encode(['error' => $e->getMessage()]),
+                false !== $errorJson ? $errorJson : '{"error": "Internal Server Error"}',
                 Response::HTTP_INTERNAL_SERVER_ERROR,
                 ['Content-Type' => 'application/json']
             );

@@ -6,7 +6,10 @@ use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
 use Faker\Factory;
 use Faker\Generator;
+use Symfony\Component\DependencyInjection\Attribute\When;
 
+#[When(env: 'test')]
+#[When(env: 'dev')]
 abstract class AppFixtures extends Fixture
 {
     protected Generator $faker;
@@ -20,11 +23,13 @@ abstract class AppFixtures extends Fixture
 
     /**
      * 生成随机JSON数据
+     *
+     * @return array<string, mixed>
      */
     protected function generateJsonData(int $fieldsCount = 5): array
     {
         $data = [];
-        for ($i = 0; $i < $fieldsCount; $i++) {
+        for ($i = 0; $i < $fieldsCount; ++$i) {
             $key = $this->faker->word();
             $type = $this->faker->numberBetween(1, 4);
 
@@ -34,9 +39,9 @@ abstract class AppFixtures extends Fixture
                 3 => $this->faker->boolean(),
                 4 => [
                     $this->faker->word() => $this->faker->word(),
-                    $this->faker->word() => $this->faker->numberBetween(1, 100)
+                    $this->faker->word() => $this->faker->numberBetween(1, 100),
                 ],
-                default => $this->faker->word() // 处理其他情况
+                default => $this->faker->word(), // 处理其他情况
             };
 
             $data[$key] = $value;
@@ -53,13 +58,15 @@ abstract class AppFixtures extends Fixture
         $eventTypes = [
             'connection', 'disconnect', 'message', 'chat',
             'join', 'leave', 'notification', 'update',
-            'sync', 'ping', 'pong', 'error'
+            'sync', 'ping', 'pong', 'error',
         ];
 
-        $prefix = $this->faker->randomElement(['server', 'client', 'room', 'user', 'system', '']);
-        $suffix = $this->faker->randomElement($eventTypes);
+        $prefixElement = $this->faker->randomElement(['server', 'client', 'room', 'user', 'system', '']);
+        $prefix = is_string($prefixElement) ? $prefixElement : '';
+        $suffixElement = $this->faker->randomElement($eventTypes);
+        $suffix = is_string($suffixElement) ? $suffixElement : 'message';
 
-        return $prefix !== '' ? "{$prefix}:{$suffix}" : $suffix;
+        return '' !== $prefix ? "{$prefix}:{$suffix}" : $suffix;
     }
 
     /**
@@ -68,7 +75,10 @@ abstract class AppFixtures extends Fixture
     protected function generateNamespace(): string
     {
         $namespaces = ['/', '/chat', '/notification', '/admin', '/game', '/api'];
-        return $this->faker->randomElement($namespaces);
+
+        $element = $this->faker->randomElement($namespaces);
+
+        return is_string($element) ? $element : '/';
     }
 
     /**

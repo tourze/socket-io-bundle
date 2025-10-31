@@ -38,6 +38,7 @@ class AttributeControllerLoader extends Loader implements RoutingAutoLoaderInter
         $collection->addCollection($this->controllerLoader->load(DebugController::class));
         $collection->addCollection($this->controllerLoader->load(SocketController::class));
         $collection->addCollection($this->controllerLoader->load(SocketTestController::class));
+
         return $collection;
     }
 }

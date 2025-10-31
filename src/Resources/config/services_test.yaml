@@ -1,0 +1,9 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    # DataFixtures are available in test environment for testing
+    SocketIoBundle\DataFixtures\:
+        resource: '../../DataFixtures/'
+        tags: ['doctrine.fixture.orm']

@@ -35,8 +35,10 @@ class RoomService
     public function findOrCreateRoom(string $name, string $namespace = '/'): Room
     {
         $room = $this->roomRepository->findByNameAndNamespace($name, $namespace);
-        if ($room === null) {
-            $room = new Room($name, $namespace);
+        if (null === $room) {
+            $room = new Room();
+            $room->setName($name);
+            $room->setNamespace($namespace);
             $this->em->persist($room);
             $this->em->flush();
         }
@@ -52,8 +54,12 @@ class RoomService
      */
     public function joinRoom(Socket $socket, string $roomName): void
     {
-        $room = $this->roomRepository->findByNameAndNamespace($roomName, $socket->getNamespace())
-            ?? new Room($roomName, $socket->getNamespace());
+        $room = $this->roomRepository->findByNameAndNamespace($roomName, $socket->getNamespace());
+        if (null === $room) {
+            $room = new Room();
+            $room->setName($roomName);
+            $room->setNamespace($socket->getNamespace());
+        }
 
         if (!$room->getSockets()->contains($socket)) {
             $socket->joinRoom($room);
@@ -72,7 +78,7 @@ class RoomService
     public function leaveRoom(Socket $socket, string $roomName): void
     {
         $room = $this->roomRepository->findByNameAndNamespace($roomName, $socket->getNamespace());
-        if ($room !== null && $room->getSockets()->contains($socket)) {
+        if (null !== $room && $room->getSockets()->contains($socket)) {
             $room->removeSocket($socket);
             $this->em->flush();
 
@@ -113,14 +119,14 @@ class RoomService
     {
         $room = $this->roomRepository->findByNameAndNamespace($roomName, $namespace);
 
-        return $room !== null ? $room->getSockets()->toArray() : [];
+        return null !== $room ? $room->getSockets()->toArray() : [];
     }
 
     /**
      * 设置房间元数据
      *
-     * @param Room  $room     房间实体
-     * @param array $metadata 元数据
+     * @param Room                $room     房间实体
+     * @param array<string,mixed> $metadata 元数据
      */
     public function setRoomMetadata(Room $room, array $metadata): void
     {
@@ -139,6 +145,9 @@ class RoomService
     {
         $rooms = $this->roomRepository->findBySocket($socket);
 
-        return array_map(fn (Room $room) => $room->getName(), $rooms);
+        return array_values(array_filter(
+            array_map(fn (Room $room) => $room->getName(), $rooms),
+            fn (?string $name) => null !== $name
+        ));
     }
 }

@@ -4,6 +4,7 @@ namespace SocketIoBundle\Controller\Admin;
 
 use Doctrine\ORM\QueryBuilder;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminAction;
+use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminCrud;
 use EasyCorp\Bundle\EasyAdminBundle\Collection\FieldCollection;
 use EasyCorp\Bundle\EasyAdminBundle\Collection\FilterCollection;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -26,14 +27,15 @@ use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use SocketIoBundle\Entity\Room;
 use Symfony\Component\HttpFoundation\Response;
 
-class RoomCrudController extends AbstractCrudController
+/**
+ * @extends AbstractCrudController<Room>
+ */
+#[AdminCrud(routePath: '/socket-io/room', routeName: 'socket_io_room')]
+final class RoomCrudController extends AbstractCrudController
 {
-    private AdminUrlGenerator $adminUrlGenerator;
-
     public function __construct(
-        AdminUrlGenerator $adminUrlGenerator,
+        private readonly AdminUrlGenerator $adminUrlGenerator,
     ) {
-        $this->adminUrlGenerator = $adminUrlGenerator;
     }
 
     public static function getEntityFqcn(): string
@@ -53,45 +55,54 @@ class RoomCrudController extends AbstractCrudController
             ->setDefaultSort(['createTime' => 'DESC'])
             ->setSearchFields(['id', 'name', 'namespace'])
             ->setPaginatorPageSize(20)
-            ->showEntityActionsInlined();
+            ->showEntityActionsInlined()
+        ;
     }
 
     public function configureFields(string $pageName): iterable
     {
         yield IdField::new('id', 'ID')
             ->setMaxLength(9999)
-            ->hideOnForm();
+            ->hideOnForm()
+        ;
 
         yield TextField::new('name', '房间名')
-            ->setHelp('Socket.IO 房间的名称');
+            ->setHelp('Socket.IO 房间的名称')
+        ;
 
         yield TextField::new('namespace', '命名空间')
-            ->setHelp('Socket.IO 命名空间，默认为 "/"');
+            ->setHelp('Socket.IO 命名空间，默认为 "/"')
+        ;
 
         if (Crud::PAGE_DETAIL === $pageName || Crud::PAGE_EDIT === $pageName) {
             yield CodeEditorField::new('metadata', '元数据')
-                ->setLanguage('json')
+                ->setLanguage('javascript')
                 ->setHelp('房间的附加元数据，JSON 格式')
-                ->hideOnIndex();
+                ->hideOnIndex()
+            ;
         }
 
         if (Crud::PAGE_DETAIL === $pageName) {
             yield AssociationField::new('sockets', '连接的Socket')
                 ->setFormTypeOption('by_reference', false)
-                ->hideOnIndex();
+                ->hideOnIndex()
+            ;
 
             yield AssociationField::new('messages', '关联消息')
                 ->setFormTypeOption('by_reference', false)
-                ->hideOnIndex();
+                ->hideOnIndex()
+            ;
         }
 
         yield DateTimeField::new('createTime', '创建时间')
             ->setFormat('yyyy-MM-dd HH:mm:ss')
-            ->hideOnForm();
+            ->hideOnForm()
+        ;
 
         yield DateTimeField::new('updateTime', '更新时间')
             ->setFormat('yyyy-MM-dd HH:mm:ss')
-            ->hideOnForm();
+            ->hideOnForm()
+        ;
     }
 
     public function configureFilters(Filters $filters): Filters
@@ -101,7 +112,8 @@ class RoomCrudController extends AbstractCrudController
             ->add(TextFilter::new('namespace', '命名空间'))
             ->add(EntityFilter::new('sockets', 'Socket连接'))
             ->add(DateTimeFilter::new('createTime', '创建时间'))
-            ->add(DateTimeFilter::new('updateTime', '更新时间'));
+            ->add(DateTimeFilter::new('updateTime', '更新时间'))
+        ;
     }
 
     public function configureActions(Actions $actions): Actions
@@ -109,24 +121,28 @@ class RoomCrudController extends AbstractCrudController
         $viewSockets = Action::new('viewSockets', '查看连接')
             ->linkToCrudAction('viewSockets')
             ->setCssClass('btn btn-info')
-            ->setIcon('fa fa-plug');
+            ->setIcon('fa fa-plug')
+        ;
 
         $viewMessages = Action::new('viewMessages', '查看消息')
             ->linkToCrudAction('viewMessages')
             ->setCssClass('btn btn-primary')
-            ->setIcon('fa fa-comments');
+            ->setIcon('fa fa-comments')
+        ;
 
         $broadcastMessage = Action::new('broadcastMessage', '广播消息')
             ->linkToCrudAction('broadcastMessageForm')
             ->setCssClass('btn btn-success')
-            ->setIcon('fa fa-bullhorn');
+            ->setIcon('fa fa-bullhorn')
+        ;
 
         return $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->add(Crud::PAGE_DETAIL, $viewSockets)
             ->add(Crud::PAGE_DETAIL, $viewMessages)
             ->add(Crud::PAGE_DETAIL, $broadcastMessage)
-            ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, Action::EDIT, Action::DELETE]);
+            ->reorder(Crud::PAGE_INDEX, [Action::DETAIL])
+        ;
     }
 
     public function createIndexQueryBuilder(SearchDto $searchDto, EntityDto $entityDto, FieldCollection $fields, FilterCollection $filters): QueryBuilder
@@ -134,7 +150,8 @@ class RoomCrudController extends AbstractCrudController
         return parent::createIndexQueryBuilder($searchDto, $entityDto, $fields, $filters)
             ->leftJoin('entity.sockets', 'sockets')
             ->addSelect('COUNT(sockets.id) as HIDDEN socketsCount')
-            ->groupBy('entity.id');
+            ->groupBy('entity.id')
+        ;
     }
 
     /**
@@ -144,15 +161,19 @@ class RoomCrudController extends AbstractCrudController
     public function viewSockets(AdminContext $context): Response
     {
         $room = $context->getEntity()->getInstance();
-        
+        if (!$room instanceof Room) {
+            throw $this->createNotFoundException('房间不存在');
+        }
+
         // 重定向到Socket列表，并添加过滤条件
         $url = $this->adminUrlGenerator
             ->setController(SocketCrudController::class)
             ->setAction(Action::INDEX)
             ->set('filters', [
-                'rooms' => ['comparison' => '=', 'value' => $room->getId()]
+                'rooms' => ['comparison' => '=', 'value' => $room->getId()],
             ])
-            ->generateUrl();
+            ->generateUrl()
+        ;
 
         return $this->redirect($url);
     }
@@ -164,15 +185,19 @@ class RoomCrudController extends AbstractCrudController
     public function viewMessages(AdminContext $context): Response
     {
         $room = $context->getEntity()->getInstance();
-        
+        if (!$room instanceof Room) {
+            throw $this->createNotFoundException('房间不存在');
+        }
+
         // 重定向到消息列表，并添加过滤条件
         $url = $this->adminUrlGenerator
             ->setController(MessageCrudController::class)
             ->setAction(Action::INDEX)
             ->set('filters', [
-                'rooms' => ['comparison' => '=', 'value' => $room->getId()]
+                'rooms' => ['comparison' => '=', 'value' => $room->getId()],
             ])
-            ->generateUrl();
+            ->generateUrl()
+        ;
 
         return $this->redirect($url);
     }
@@ -187,10 +212,11 @@ class RoomCrudController extends AbstractCrudController
         $url = $this->adminUrlGenerator
             ->setController(MessageCrudController::class)
             ->setAction(Action::NEW)
-            ->generateUrl();
+            ->generateUrl()
+        ;
 
         $this->addFlash('info', '请在创建消息后，将房间关联到该消息');
 
         return $this->redirect($url);
     }
-} 
+}

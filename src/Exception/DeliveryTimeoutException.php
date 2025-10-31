@@ -2,7 +2,7 @@
 
 namespace SocketIoBundle\Exception;
 
-class DeliveryTimeoutException extends StatusException
+class DeliveryTimeoutException extends \RuntimeException
 {
     public function __construct(
         string $sessionId,

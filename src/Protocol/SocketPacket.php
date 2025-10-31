@@ -6,28 +6,13 @@ use SocketIoBundle\Enum\SocketPacketType;
 
 class SocketPacket
 {
-    private SocketPacketType $type;
-
-    private ?string $namespace;
-
-    private ?int $id;
-
-    private ?string $data;
-
-    private bool $binary;
-
     public function __construct(
-        SocketPacketType $type,
-        ?string $namespace = null,
-        ?int $id = null,
-        ?string $data = null,
-        bool $binary = false,
+        private readonly SocketPacketType $type,
+        private readonly ?string $namespace = null,
+        private readonly ?int $id = null,
+        private readonly ?string $data = null,
+        private readonly bool $binary = false,
     ) {
-        $this->type = $type;
-        $this->namespace = $namespace;
-        $this->id = $id;
-        $this->data = $data;
-        $this->binary = $binary;
     }
 
     public function getType(): SocketPacketType
@@ -80,46 +65,88 @@ class SocketPacket
 
     public static function decode(string $packet): self
     {
-        $type = (int) $packet[0];
-        $binary = false;
-        if ($type > 3) {
-            $type -= 3;
-            $binary = true;
-        }
-        $type = SocketPacketType::from($type);
-
+        [$type, $binary] = self::parseTypeAndBinary($packet);
         $offset = 1;
-        $namespace = null;
-        $id = null;
-        $data = null;
 
-        if (isset($packet[$offset]) && '/' === $packet[$offset]) {
-            $endIndex = strpos($packet, ',', $offset);
-            if (false !== $endIndex) {
-                $namespace = substr($packet, $offset, $endIndex - $offset);
-                $offset = $endIndex + 1;
-            }
-        }
-
-        if (isset($packet[$offset]) && is_numeric($packet[$offset])) {
-            $idStr = '';
-            while (isset($packet[$offset]) && is_numeric($packet[$offset])) {
-                $idStr .= $packet[$offset];
-                ++$offset;
-            }
-            $id = (int) $idStr;
-        }
-
-        if (isset($packet[$offset])) {
-            $data = substr($packet, $offset);
-        }
+        [$namespace, $offset] = self::parseNamespace($packet, $offset);
+        [$id, $offset] = self::parseId($packet, $offset);
+        $data = self::parseData($packet, $offset);
 
         return new self($type, $namespace, $id, $data, $binary);
     }
 
+    /**
+     * @return array{SocketPacketType, bool}
+     */
+    private static function parseTypeAndBinary(string $packet): array
+    {
+        $type = (int) $packet[0];
+        $binary = false;
+
+        if ($type > 3) {
+            $type -= 3;
+            $binary = true;
+        }
+
+        return [SocketPacketType::from($type), $binary];
+    }
+
+    /**
+     * @return array{?string, int}
+     */
+    private static function parseNamespace(string $packet, int $offset): array
+    {
+        if (!isset($packet[$offset]) || '/' !== $packet[$offset]) {
+            return [null, $offset];
+        }
+
+        $endIndex = strpos($packet, ',', $offset);
+        if (false === $endIndex) {
+            return [null, $offset];
+        }
+
+        $namespace = substr($packet, $offset, $endIndex - $offset);
+        $newOffset = $endIndex + 1;
+
+        return [$namespace, $newOffset];
+    }
+
+    /**
+     * @return array{?int, int}
+     */
+    private static function parseId(string $packet, int $offset): array
+    {
+        if (!isset($packet[$offset]) || !is_numeric($packet[$offset])) {
+            return [null, $offset];
+        }
+
+        $idStr = '';
+        $currentOffset = $offset;
+        while (isset($packet[$currentOffset]) && is_numeric($packet[$currentOffset])) {
+            $idStr .= $packet[$currentOffset];
+            ++$currentOffset;
+        }
+
+        return [(int) $idStr, $currentOffset];
+    }
+
+    private static function parseData(string $packet, int $offset): ?string
+    {
+        return isset($packet[$offset]) ? substr($packet, $offset) : null;
+    }
+
+    /**
+     * @param array<string, mixed>|null $data
+     */
     public static function createConnect(?string $namespace = null, ?array $data = null): self
     {
-        return new self(SocketPacketType::CONNECT, $namespace, null, $data !== null ? json_encode($data) : null);
+        $encodedData = null;
+        if (null !== $data) {
+            $encoded = json_encode($data);
+            $encodedData = false !== $encoded ? $encoded : null;
+        }
+
+        return new self(SocketPacketType::CONNECT, $namespace, null, $encodedData);
     }
 
     public static function createDisconnect(?string $namespace = null): self

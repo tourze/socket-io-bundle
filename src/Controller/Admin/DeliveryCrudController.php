@@ -5,6 +5,7 @@ namespace SocketIoBundle\Controller\Admin;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminAction;
+use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminCrud;
 use EasyCorp\Bundle\EasyAdminBundle\Collection\FieldCollection;
 use EasyCorp\Bundle\EasyAdminBundle\Collection\FilterCollection;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -30,14 +31,15 @@ use SocketIoBundle\Enum\MessageStatus;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\HttpFoundation\Response;
 
-class DeliveryCrudController extends AbstractCrudController
+/**
+ * @extends AbstractCrudController<Delivery>
+ */
+#[AdminCrud(routePath: '/socket-io/delivery', routeName: 'socket_io_delivery')]
+final class DeliveryCrudController extends AbstractCrudController
 {
-    private EntityManagerInterface $entityManager;
-
     public function __construct(
-        EntityManagerInterface $entityManager,
+        private readonly EntityManagerInterface $entityManager,
     ) {
-        $this->entityManager = $entityManager;
     }
 
     public static function getEntityFqcn(): string
@@ -57,22 +59,26 @@ class DeliveryCrudController extends AbstractCrudController
             ->setDefaultSort(['createTime' => 'DESC'])
             ->setSearchFields(['id', 'error'])
             ->setPaginatorPageSize(20)
-            ->showEntityActionsInlined();
+            ->showEntityActionsInlined()
+        ;
     }
 
     public function configureFields(string $pageName): iterable
     {
         yield IdField::new('id', 'ID')
             ->setMaxLength(9999)
-            ->hideOnForm();
+            ->hideOnForm()
+        ;
 
         yield AssociationField::new('message', '消息')
             ->setFormTypeOption('choice_label', 'event')
-            ->setRequired(true);
+            ->setRequired(true)
+        ;
 
         yield AssociationField::new('socket', 'Socket连接')
             ->setFormTypeOption('choice_label', 'socketId')
-            ->setRequired(true);
+            ->setRequired(true)
+        ;
 
         yield ChoiceField::new('status', '状态')
             ->setFormType(EnumType::class)
@@ -80,48 +86,55 @@ class DeliveryCrudController extends AbstractCrudController
                 'class' => MessageStatus::class,
                 'choices' => MessageStatus::cases(),
                 'choice_label' => function (MessageStatus $status) {
-                    return $status->label();
-                }
+                    return $status->getLabel();
+                },
             ])
             ->formatValue(function ($value) {
                 if ($value instanceof MessageStatus) {
-                    $label = $value->label();
+                    $label = $value->getLabel();
                     $class = match ($value) {
                         MessageStatus::PENDING => 'warning',
                         MessageStatus::DELIVERED => 'success',
                         MessageStatus::FAILED => 'danger',
                     };
+
                     return sprintf('<span class="badge bg-%s">%s</span>', $class, $label);
                 }
+
                 return '';
             })
-            ->setCustomOptions(['renderAsHtml' => true]);
+            ->setCustomOptions(['renderAsHtml' => true])
+        ;
 
         yield IntegerField::new('retries', '重试次数');
 
         if (Crud::PAGE_DETAIL === $pageName || Crud::PAGE_EDIT === $pageName) {
             yield TextField::new('error', '错误信息')
-                ->hideOnIndex();
+                ->hideOnIndex()
+            ;
         }
 
         yield DateTimeField::new('deliveredAt', '投递时间')
             ->setFormat('yyyy-MM-dd HH:mm:ss')
-            ->hideOnForm();
+            ->hideOnForm()
+        ;
 
         yield DateTimeField::new('createTime', '创建时间')
             ->setFormat('yyyy-MM-dd HH:mm:ss')
-            ->hideOnForm();
+            ->hideOnForm()
+        ;
 
         yield DateTimeField::new('updateTime', '更新时间')
             ->setFormat('yyyy-MM-dd HH:mm:ss')
-            ->hideOnForm();
+            ->hideOnForm()
+        ;
     }
 
     public function configureFilters(Filters $filters): Filters
     {
         $statusChoices = [];
         foreach (MessageStatus::cases() as $status) {
-            $statusChoices[$status->label()] = $status->value;
+            $statusChoices[$status->getLabel()] = $status->value;
         }
 
         return $filters
@@ -130,7 +143,8 @@ class DeliveryCrudController extends AbstractCrudController
             ->add(ChoiceFilter::new('status', '状态')->setChoices($statusChoices))
             ->add(TextFilter::new('error', '错误信息'))
             ->add(DateTimeFilter::new('createTime', '创建时间'))
-            ->add(DateTimeFilter::new('deliveredAt', '投递时间'));
+            ->add(DateTimeFilter::new('deliveredAt', '投递时间'))
+        ;
     }
 
     public function configureActions(Actions $actions): Actions
@@ -138,24 +152,27 @@ class DeliveryCrudController extends AbstractCrudController
         $retryDelivery = Action::new('retryDelivery', '重试')
             ->linkToCrudAction('retryDelivery')
             ->setCssClass('btn btn-warning')
-            ->setIcon('fa fa-redo');
+            ->setIcon('fa fa-redo')
+        ;
 
         $markDelivered = Action::new('markDelivered', '标记已投递')
             ->linkToCrudAction('markDelivered')
             ->setCssClass('btn btn-success')
-            ->setIcon('fa fa-check');
+            ->setIcon('fa fa-check')
+        ;
 
         $markFailed = Action::new('markFailed', '标记失败')
             ->linkToCrudAction('markFailed')
             ->setCssClass('btn btn-danger')
-            ->setIcon('fa fa-times');
+            ->setIcon('fa fa-times')
+        ;
 
         return $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->add(Crud::PAGE_DETAIL, $retryDelivery)
             ->add(Crud::PAGE_DETAIL, $markDelivered)
             ->add(Crud::PAGE_DETAIL, $markFailed)
-            ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, Action::EDIT, Action::DELETE]);
+        ;
     }
 
     public function createIndexQueryBuilder(SearchDto $searchDto, EntityDto $entityDto, FieldCollection $fields, FilterCollection $filters): QueryBuilder
@@ -163,7 +180,8 @@ class DeliveryCrudController extends AbstractCrudController
         return parent::createIndexQueryBuilder($searchDto, $entityDto, $fields, $filters)
             ->leftJoin('entity.message', 'message')
             ->leftJoin('entity.socket', 'socket')
-            ->addSelect('message', 'socket');
+            ->addSelect('message', 'socket')
+        ;
     }
 
     /**
@@ -173,13 +191,19 @@ class DeliveryCrudController extends AbstractCrudController
     public function retryDelivery(AdminContext $context): Response
     {
         $delivery = $context->getEntity()->getInstance();
+        if (!$delivery instanceof Delivery) {
+            throw $this->createNotFoundException('投递记录不存在');
+        }
+
         $delivery->incrementRetries();
         $delivery->setStatus(MessageStatus::PENDING);
         $this->entityManager->flush();
 
         $this->addFlash('success', sprintf('已重试投递记录 %s，当前为第%d次重试', $delivery->getId(), $delivery->getRetries()));
 
-        return $this->redirect($context->getReferrer());
+        $referer = $context->getRequest()->headers->get('referer');
+
+        return $this->redirect($referer ?? $this->generateUrl('admin'));
     }
 
     /**
@@ -189,12 +213,18 @@ class DeliveryCrudController extends AbstractCrudController
     public function markDelivered(AdminContext $context): Response
     {
         $delivery = $context->getEntity()->getInstance();
+        if (!$delivery instanceof Delivery) {
+            throw $this->createNotFoundException('投递记录不存在');
+        }
+
         $delivery->setStatus(MessageStatus::DELIVERED);
         $this->entityManager->flush();
 
         $this->addFlash('success', sprintf('已将投递记录 %s 标记为已投递', $delivery->getId()));
 
-        return $this->redirect($context->getReferrer());
+        $referer = $context->getRequest()->headers->get('referer');
+
+        return $this->redirect($referer ?? $this->generateUrl('admin'));
     }
 
     /**
@@ -204,14 +234,20 @@ class DeliveryCrudController extends AbstractCrudController
     public function markFailed(AdminContext $context): Response
     {
         $delivery = $context->getEntity()->getInstance();
+        if (!$delivery instanceof Delivery) {
+            throw $this->createNotFoundException('投递记录不存在');
+        }
+
         $delivery->setStatus(MessageStatus::FAILED);
-        if (!$delivery->getError()) {
+        if (null === $delivery->getError() || '' === $delivery->getError()) {
             $delivery->setError('手动标记为失败');
         }
         $this->entityManager->flush();
 
         $this->addFlash('warning', sprintf('已将投递记录 %s 标记为失败', $delivery->getId()));
 
-        return $this->redirect($context->getReferrer());
+        $referer = $context->getRequest()->headers->get('referer');
+
+        return $this->redirect($referer ?? $this->generateUrl('admin'));
     }
-} 
+}

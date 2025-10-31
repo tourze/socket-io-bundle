@@ -16,8 +16,7 @@ class DeliveryFixtures extends AppFixtures implements DependentFixtureInterface
         // 为每条消息创建投递记录
         $totalMessages = MessageFixtures::MESSAGE_COUNT + 10; // 普通消息 + 系统消息
 
-        for ($i = 0; $i < $totalMessages; $i++) {
-            /** @var Message $message */
+        for ($i = 0; $i < $totalMessages; ++$i) {
             $message = $this->getReference(MessageFixtures::MESSAGE_REFERENCE_PREFIX . $i, Message::class);
 
             // 获取与该消息关联的房间里的所有Socket
@@ -35,6 +34,8 @@ class DeliveryFixtures extends AppFixtures implements DependentFixtureInterface
 
     /**
      * 获取消息应该被投递到的所有Socket
+     *
+     * @return Socket[]
      */
     private function getSocketsForMessage(Message $message): array
     {
@@ -82,7 +83,11 @@ class DeliveryFixtures extends AppFixtures implements DependentFixtureInterface
             $delivery->setStatus(MessageStatus::DELIVERED);
             // 设置投递时间
             $createTime = $message->getCreateTime();
-            $deliveredAt = new \DateTimeImmutable('@' . ($createTime->getTimestamp() + $this->faker->numberBetween(1, 60)));
+            if (null !== $createTime) {
+                $deliveredAt = new \DateTimeImmutable('@' . ($createTime->getTimestamp() + $this->faker->numberBetween(1, 60)));
+            } else {
+                $deliveredAt = new \DateTimeImmutable();
+            }
             $socket->setLastDeliverTime($deliveredAt);
         } elseif ($statusRandom <= 95) {
             $delivery->setStatus(MessageStatus::FAILED);
@@ -94,7 +99,7 @@ class DeliveryFixtures extends AppFixtures implements DependentFixtureInterface
         // 设置重试次数
         if (!$delivery->isDelivered()) {
             $retries = $this->faker->numberBetween(0, 3);
-            for ($i = 0; $i < $retries; $i++) {
+            for ($i = 0; $i < $retries; ++$i) {
                 $delivery->incrementRetries();
             }
         }
@@ -124,10 +129,11 @@ class DeliveryFixtures extends AppFixtures implements DependentFixtureInterface
             'Network error',
             'Client error: Invalid transport',
             'Transport error: cannot deliver message',
-            'Client abort'
+            'Client abort',
         ];
 
         $index = array_rand($errors);
+
         return $errors[$index];
     }
 
@@ -139,4 +145,4 @@ class DeliveryFixtures extends AppFixtures implements DependentFixtureInterface
             MessageFixtures::class,
         ];
     }
-} 
+}

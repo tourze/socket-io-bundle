@@ -36,6 +36,9 @@ class SocketService
         private readonly RoomService $roomService,
         private readonly DeliveryService $deliveryService,
         private readonly EventDispatcherInterface $eventDispatcher,
+        private readonly HttpRequestHandler $httpRequestHandler,
+        private readonly MessageBuilder $messageBuilder,
+        private readonly PollingStrategy $pollingStrategy,
     ) {
     }
 
@@ -49,11 +52,15 @@ class SocketService
         string $namespace = '/',
     ): Socket {
         // 创建或更新Socket实体
-        $socket = $this->socketRepository->findBySessionId($sessionId) ?? new Socket($sessionId, $socketId);
-        $socket->setTransport($transport)
-            ->setNamespace($namespace)
-            ->setConnected(true)
-            ->updatePingTime();
+        $socket = $this->socketRepository->findBySessionId($sessionId) ?? new Socket();
+        if (null === $socket->getSessionId()) {
+            $socket->setSessionId($sessionId);
+            $socket->setSocketId($socketId);
+        }
+        $socket->setTransport($transport);
+        $socket->setNamespace($namespace);
+        $socket->setConnected(true);
+        $socket->updatePingTime();
 
         $this->em->persist($socket);
         $this->em->flush();
@@ -144,6 +151,10 @@ class SocketService
     {
         $sessionId = $socket->getSessionId();
 
+        if (null === $sessionId) {
+            return null;
+        }
+
         // 如果传输层已存在且未过期，直接返回
         if (isset($this->activeTransports[$sessionId]) && !$this->activeTransports[$sessionId]->isExpired()) {
             return $this->activeTransports[$sessionId];
@@ -151,14 +162,25 @@ class SocketService
 
         // 如果传输层不存在或已过期，创建新的传输层
         $transport = match ($socket->getTransport()) {
-            'polling' => new PollingTransport($this->em, $this->socketRepository, $this->deliveryService, $socket, $sessionId),
+            'polling' => new PollingTransport(
+                $this->em,
+                $this->socketRepository,
+                $this->deliveryService,
+                $socket,
+                $this->httpRequestHandler,
+                $this->messageBuilder,
+                $this->pollingStrategy,
+                $sessionId
+            ),
             // 未来可以在这里添加其他传输类型的支持
             default => null,
         };
 
-        if ($transport !== null) {
+        if (null !== $transport) {
             $this->activeTransports[$sessionId] = $transport;
-            $transport->setPacketHandler(fn ($packet) => $this->handlePacket($socket, $packet));
+            $transport->setPacketHandler(function (SocketPacket $packet) use ($socket): void {
+                $this->handlePacket($socket, $packet);
+            });
         }
 
         return $transport;
@@ -170,9 +192,11 @@ class SocketService
     public function sendPing(Socket $socket): void
     {
         $transport = $this->getTransport($socket);
-        if ($transport !== null) {
+        if (null !== $transport) {
             $transport->send(EnginePacket::createPing()->encode());
         }
+        $socket->updatePingTime();
+        $this->em->flush();
     }
 
     /**
@@ -187,14 +211,19 @@ class SocketService
      */
     public function checkActive(Socket $socket, int $timeout = 30): void
     {
+        $sessionId = $socket->getSessionId();
+        if (null === $sessionId) {
+            throw new \InvalidArgumentException('Socket session ID cannot be null');
+        }
+
         $transport = $this->getTransport($socket);
-        if ($transport === null || $transport->isExpired()) {
-            throw new InvalidTransportException($socket->getSessionId());
+        if (null === $transport || $transport->isExpired()) {
+            throw new InvalidTransportException($sessionId);
         }
 
         $lastPingTime = $socket->getLastPingTime();
-        if ($lastPingTime === null) {
-            throw new InvalidPingException($socket->getSessionId());
+        if (null === $lastPingTime) {
+            throw new InvalidPingException($sessionId);
         }
 
         $now = new \DateTimeImmutable();
@@ -202,11 +231,11 @@ class SocketService
 
         // 检查最后一次 ping 时间和投递时间
         $pingDiff = $now->getTimestamp() - $lastPingTime->getTimestamp();
-        $deliverDiff = $lastDeliverTime !== null ? $now->getTimestamp() - $lastDeliverTime->getTimestamp() : 0;
+        $deliverDiff = null !== $lastDeliverTime ? $now->getTimestamp() - $lastDeliverTime->getTimestamp() : 0;
 
         // 只有当 ping 和投递都超时时才抛出异常
         if ($pingDiff > $timeout && $deliverDiff > $timeout * 2) {
-            throw new PingTimeoutException($socket->getSessionId(), $timeout, $lastPingTime, $now);
+            throw new PingTimeoutException($sessionId, $timeout, $lastPingTime, $now);
         }
     }
 
@@ -243,11 +272,20 @@ class SocketService
 
         // 处理事件
         if (SocketPacketType::EVENT === $packet->getType()) {
-            $data = json_decode($packet->getData(), true);
-            if (!(bool) $data) {
+            $packetData = $packet->getData();
+            if (null === $packetData) {
+                return;
+            }
+
+            $data = json_decode($packetData, true);
+            if (!is_array($data) || 0 === count($data)) {
                 return;
             }
             $event = array_shift($data);
+
+            if (null === $event || !is_string($event)) {
+                return;
+            }
 
             // 分发事件
             $this->eventDispatcher->dispatch(new SocketEvent($event, $socket, $data));

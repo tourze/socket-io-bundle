@@ -6,13 +6,17 @@ use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use SocketIoBundle\Entity\Room;
 use SocketIoBundle\Entity\Socket;
+use Tourze\PHPUnitSymfonyKernelTest\Attribute\AsRepository;
 
 /**
+ * @extends ServiceEntityRepository<Room>
+ *
  * @method Room|null find($id, $lockMode = null, $lockVersion = null)
- * @method Room|null findOneBy(array $criteria, array $orderBy = null)
+ * @method Room|null findOneBy(array<string, mixed> $criteria, array<string, string>|null $orderBy = null)
  * @method Room[]    findAll()
- * @method Room[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
+ * @method Room[]    findBy(array<string, mixed> $criteria, array<string, string>|null $orderBy = null, $limit = null, $offset = null)
  */
+#[AsRepository(entityClass: Room::class)]
 class RoomRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
@@ -22,28 +26,45 @@ class RoomRepository extends ServiceEntityRepository
 
     public function findByName(string $name): ?Room
     {
+        /** @var Room|null */
         return $this->findOneBy(['name' => $name]);
     }
 
+    /**
+     * @return array<int, Room>
+     */
     public function findByClientId(string $clientId): array
     {
-        $qb = $this->createQueryBuilder('r');
-
-        return $qb
-            ->where($qb->expr()->like('r.clients', ':clientId'))
-            ->setParameter('clientId', '%' . $clientId . '%')
+        /** @var array<int, Room> */
+        return $this->createQueryBuilder('r')
+            ->innerJoin('r.sockets', 's')
+            ->where('s.clientId = :clientId')
+            ->setParameter('clientId', $clientId)
             ->getQuery()
-            ->getResult();
+            ->getResult()
+        ;
     }
 
     public function removeClientFromAllRooms(string $clientId): void
     {
         $rooms = $this->findByClientId($clientId);
+        $entityManager = $this->getEntityManager();
+
         foreach ($rooms as $room) {
-            $room->removeClient($clientId);
-            $this->getEntityManager()->persist($room);
+            $socketsToRemove = [];
+            foreach ($room->getSockets() as $socket) {
+                if ($socket->getClientId() === $clientId) {
+                    $socketsToRemove[] = $socket;
+                }
+            }
+
+            foreach ($socketsToRemove as $socket) {
+                $socket->leaveRoom($room);
+                $entityManager->persist($socket);
+            }
+            $entityManager->persist($room);
         }
-        $this->getEntityManager()->flush();
+        $entityManager->flush();
     }
 
     /**
@@ -56,14 +77,18 @@ class RoomRepository extends ServiceEntityRepository
      */
     public function findByNameAndNamespace(string $name, string $namespace = '/'): ?Room
     {
+        /** @var Room|null */
         return $this->findOneBy(['name' => $name, 'namespace' => $namespace]);
     }
 
     /**
      * 获取符合条件的多个房间
+     * @param array<string> $names
+     * @return array<Room>
      */
     public function findByNamesAndNamespace(array $names, string $namespace = '/'): array
     {
+        /** @var array<int, Room> */
         return $this->findBy(['name' => $names, 'namespace' => $namespace]);
     }
 
@@ -72,10 +97,11 @@ class RoomRepository extends ServiceEntityRepository
      *
      * @param string $namespace 命名空间
      *
-     * @return Room[] 房间数组
+     * @return array<int, Room> 房间数组
      */
     public function findByNamespace(string $namespace): array
     {
+        /** @var array<int, Room> */
         return $this->findBy(['namespace' => $namespace]);
     }
 
@@ -84,15 +110,33 @@ class RoomRepository extends ServiceEntityRepository
      *
      * @param Socket $socket 连接实体
      *
-     * @return Room[] 房间数组
+     * @return array<int, Room> 房间数组
      */
     public function findBySocket(Socket $socket): array
     {
+        /** @var array<int, Room> */
         return $this->createQueryBuilder('r')
             ->innerJoin('r.sockets', 's')
             ->where('s.id = :socketId')
             ->setParameter('socketId', $socket->getId())
             ->getQuery()
-            ->getResult();
+            ->getResult()
+        ;
+    }
+
+    public function save(Room $entity, bool $flush = true): void
+    {
+        $this->getEntityManager()->persist($entity);
+        if ($flush) {
+            $this->getEntityManager()->flush();
+        }
+    }
+
+    public function remove(Room $entity, bool $flush = true): void
+    {
+        $this->getEntityManager()->remove($entity);
+        if ($flush) {
+            $this->getEntityManager()->flush();
+        }
     }
 }

@@ -5,6 +5,7 @@ namespace SocketIoBundle\Controller\Admin;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminAction;
+use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminCrud;
 use EasyCorp\Bundle\EasyAdminBundle\Collection\FieldCollection;
 use EasyCorp\Bundle\EasyAdminBundle\Collection\FilterCollection;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -28,17 +29,16 @@ use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use SocketIoBundle\Entity\Socket;
 use Symfony\Component\HttpFoundation\Response;
 
-class SocketCrudController extends AbstractCrudController
+/**
+ * @extends AbstractCrudController<Socket>
+ */
+#[AdminCrud(routePath: '/socket-io/socket', routeName: 'socket_io_socket')]
+final class SocketCrudController extends AbstractCrudController
 {
-    private EntityManagerInterface $entityManager;
-    private AdminUrlGenerator $adminUrlGenerator;
-
     public function __construct(
-        EntityManagerInterface $entityManager,
-        AdminUrlGenerator $adminUrlGenerator,
+        private readonly EntityManagerInterface $entityManager,
+        private readonly AdminUrlGenerator $adminUrlGenerator,
     ) {
-        $this->entityManager = $entityManager;
-        $this->adminUrlGenerator = $adminUrlGenerator;
     }
 
     public static function getEntityFqcn(): string
@@ -58,70 +58,87 @@ class SocketCrudController extends AbstractCrudController
             ->setDefaultSort(['createTime' => 'DESC'])
             ->setSearchFields(['id', 'socketId', 'sessionId', 'clientId', 'namespace', 'transport'])
             ->setPaginatorPageSize(20)
-            ->showEntityActionsInlined();
+            ->showEntityActionsInlined()
+        ;
     }
 
     public function configureFields(string $pageName): iterable
     {
         yield IdField::new('id', 'ID')
             ->setMaxLength(9999)
-            ->hideOnForm();
+            ->hideOnForm()
+        ;
 
         yield TextField::new('socketId', 'Socket ID')
-            ->setHelp('Socket.IO 连接的唯一标识符');
+            ->setHelp('Socket.IO 连接的唯一标识符')
+        ;
 
         yield TextField::new('sessionId', '会话ID')
-            ->setHelp('会话的唯一标识符');
+            ->setHelp('会话的唯一标识符')
+        ;
 
         yield TextField::new('clientId', '客户端ID')
             ->setRequired(false)
-            ->setHelp('客户端自定义标识符（可选）');
+            ->setHelp('客户端自定义标识符（可选）')
+        ;
 
         yield TextField::new('namespace', '命名空间')
-            ->setHelp('Socket.IO 命名空间，默认为 "/"');
+            ->setHelp('Socket.IO 命名空间，默认为 "/"')
+        ;
 
         yield TextField::new('transport', '传输类型')
-            ->setHelp('连接的传输类型，如 polling、websocket 等');
+            ->setHelp('连接的传输类型，如 polling、websocket 等')
+        ;
 
         yield BooleanField::new('connected', '是否在线')
-            ->renderAsSwitch(true);
+            ->renderAsSwitch(true)
+        ;
 
         yield IntegerField::new('pollCount', '轮询次数')
-            ->setHelp('长轮询连接的轮询请求次数');
+            ->setHelp('长轮询连接的轮询请求次数')
+        ;
 
         if (Crud::PAGE_DETAIL === $pageName) {
             yield CodeEditorField::new('handshake', '握手数据')
-                ->setLanguage('json')
-                ->hideOnIndex();
+                ->setLanguage('javascript')
+                ->hideOnIndex()
+            ;
 
             yield AssociationField::new('rooms', '加入的房间')
                 ->setFormTypeOption('by_reference', false)
-                ->hideOnIndex();
+                ->hideOnIndex()
+            ;
 
             yield AssociationField::new('deliveries', '消息投递记录')
                 ->hideOnForm()
-                ->hideOnIndex();
+                ->hideOnIndex()
+            ;
         }
 
         yield DateTimeField::new('lastPingTime', '最后心跳时间')
             ->setFormat('yyyy-MM-dd HH:mm:ss')
-            ->hideOnForm();
+            ->hideOnForm()
+        ;
 
         yield DateTimeField::new('lastDeliverTime', '最后投递时间')
             ->setFormat('yyyy-MM-dd HH:mm:ss')
-            ->hideOnForm();
+            ->hideOnForm()
+        ;
 
         yield DateTimeField::new('lastActiveTime', '最后活跃时间')
             ->setFormat('yyyy-MM-dd HH:mm:ss')
-            ->hideOnForm();
+            ->hideOnForm()
+        ;
 
         yield DateTimeField::new('createTime', '创建时间')
             ->setFormat('yyyy-MM-dd HH:mm:ss')
-            ->hideOnForm();
+            ->hideOnForm()
+        ;
 
         yield DateTimeField::new('updateTime', '更新时间')
             ->setFormat('yyyy-MM-dd HH:mm:ss')
-            ->hideOnForm();
+            ->hideOnForm()
+        ;
     }
 
     public function configureFilters(Filters $filters): Filters
@@ -133,7 +150,8 @@ class SocketCrudController extends AbstractCrudController
             ->add(TextFilter::new('namespace', '命名空间'))
             ->add(DateTimeFilter::new('createTime', '创建时间'))
             ->add(DateTimeFilter::new('updateTime', '更新时间'))
-            ->add(DateTimeFilter::new('lastActiveTime', '最后活跃时间'));
+            ->add(DateTimeFilter::new('lastActiveTime', '最后活跃时间'))
+        ;
     }
 
     public function configureActions(Actions $actions): Actions
@@ -141,24 +159,27 @@ class SocketCrudController extends AbstractCrudController
         $viewRooms = Action::new('viewRooms', '查看房间')
             ->linkToCrudAction('viewRooms')
             ->setCssClass('btn btn-info')
-            ->setIcon('fa fa-door-open');
+            ->setIcon('fa fa-door-open')
+        ;
 
         $disconnectSocket = Action::new('disconnect', '断开连接')
             ->linkToCrudAction('disconnectSocket')
             ->setCssClass('btn btn-danger')
-            ->setIcon('fa fa-plug');
+            ->setIcon('fa fa-plug')
+        ;
 
         $refreshStatus = Action::new('refreshStatus', '刷新状态')
             ->linkToCrudAction('refreshStatus')
             ->setCssClass('btn btn-primary')
-            ->setIcon('fa fa-sync');
+            ->setIcon('fa fa-sync')
+        ;
 
         return $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->add(Crud::PAGE_DETAIL, $viewRooms)
             ->add(Crud::PAGE_DETAIL, $refreshStatus)
             ->add(Crud::PAGE_DETAIL, $disconnectSocket)
-            ->reorder(Crud::PAGE_INDEX, [Action::DETAIL, Action::EDIT, Action::DELETE]);
+        ;
     }
 
     public function createIndexQueryBuilder(SearchDto $searchDto, EntityDto $entityDto, FieldCollection $fields, FilterCollection $filters): QueryBuilder
@@ -166,7 +187,8 @@ class SocketCrudController extends AbstractCrudController
         return parent::createIndexQueryBuilder($searchDto, $entityDto, $fields, $filters)
             ->leftJoin('entity.rooms', 'rooms')
             ->leftJoin('entity.deliveries', 'deliveries')
-            ->addSelect('rooms', 'deliveries');
+            ->addSelect('rooms', 'deliveries')
+        ;
     }
 
     /**
@@ -176,6 +198,10 @@ class SocketCrudController extends AbstractCrudController
     public function viewRooms(AdminContext $context): Response
     {
         $socket = $context->getEntity()->getInstance();
+        if (!$socket instanceof Socket) {
+            throw $this->createNotFoundException('Socket连接不存在');
+        }
+
         $rooms = $socket->getRooms();
 
         // 重定向到房间列表，并添加过滤条件
@@ -183,9 +209,10 @@ class SocketCrudController extends AbstractCrudController
             ->setController(RoomCrudController::class)
             ->setAction(Action::INDEX)
             ->set('filters', [
-                'sockets' => ['comparison' => '=', 'value' => $socket->getId()]
+                'sockets' => ['comparison' => '=', 'value' => $socket->getId()],
             ])
-            ->generateUrl();
+            ->generateUrl()
+        ;
 
         return $this->redirect($url);
     }
@@ -197,12 +224,18 @@ class SocketCrudController extends AbstractCrudController
     public function disconnectSocket(AdminContext $context): Response
     {
         $socket = $context->getEntity()->getInstance();
+        if (!$socket instanceof Socket) {
+            throw $this->createNotFoundException('Socket连接不存在');
+        }
+
         $socket->setConnected(false);
         $this->entityManager->flush();
 
         $this->addFlash('success', sprintf('已断开 Socket 连接: %s', $socket->getSocketId()));
 
-        return $this->redirect($context->getReferrer());
+        $referer = $context->getRequest()->headers->get('referer');
+
+        return $this->redirect($referer ?? $this->generateUrl('admin'));
     }
 
     /**
@@ -212,12 +245,18 @@ class SocketCrudController extends AbstractCrudController
     public function refreshStatus(AdminContext $context): Response
     {
         $socket = $context->getEntity()->getInstance();
+        if (!$socket instanceof Socket) {
+            throw $this->createNotFoundException('Socket连接不存在');
+        }
+
         $socket->updateLastActiveTime();
         $socket->updatePingTime();
         $this->entityManager->flush();
 
         $this->addFlash('success', sprintf('已刷新 Socket 状态: %s', $socket->getSocketId()));
 
-        return $this->redirect($context->getReferrer());
+        $referer = $context->getRequest()->headers->get('referer');
+
+        return $this->redirect($referer ?? $this->generateUrl('admin'));
     }
 }

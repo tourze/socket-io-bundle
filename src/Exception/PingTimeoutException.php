@@ -2,7 +2,7 @@
 
 namespace SocketIoBundle\Exception;
 
-class PingTimeoutException extends StatusException
+class PingTimeoutException extends \RuntimeException
 {
     public function __construct(
         string $sessionId,

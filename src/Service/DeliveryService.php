@@ -5,11 +5,13 @@ namespace SocketIoBundle\Service;
 use Doctrine\ORM\EntityManagerInterface;
 use SocketIoBundle\Entity\Delivery;
 use SocketIoBundle\Entity\Message;
+use SocketIoBundle\Entity\Room;
 use SocketIoBundle\Entity\Socket;
 use SocketIoBundle\Enum\MessageStatus;
 use SocketIoBundle\Enum\SocketPacketType;
 use SocketIoBundle\Protocol\SocketPacket;
 use SocketIoBundle\Repository\DeliveryRepository;
+use SocketIoBundle\Repository\MessageRepository;
 use SocketIoBundle\Repository\RoomRepository;
 use SocketIoBundle\Repository\SocketRepository;
 
@@ -37,6 +39,7 @@ class DeliveryService
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly DeliveryRepository $deliveryRepository,
+        private readonly MessageRepository $messageRepository,
         private readonly RoomRepository $roomRepository,
         private readonly SocketRepository $socketRepository,
     ) {
@@ -70,41 +73,47 @@ class DeliveryService
 
     /**
      * 从队列获取消息
+     * @return array<mixed>
      */
     public function dequeue(string $roomName, float $since = 0): array
     {
         if (!isset($this->queues[$roomName])) {
             // 使用实体管理器查询消息
             $room = $this->roomRepository->findByName($roomName);
-            if ($room === null) {
+            if (null === $room) {
                 return [];
             }
-            
-            $qb = $this->em->createQueryBuilder();
-            $qb->select('m')
-               ->from(Message::class, 'm')
-               ->innerJoin('m.rooms', 'r')
-               ->where('r.id = :roomId')
-               ->andWhere('m.createTime > :since')
-               ->setParameter('roomId', $room->getId())
-               ->setParameter('since', new \DateTimeImmutable('@' . intval($since)));
-               
+
+            $qb = $this->messageRepository->createQueryBuilder('m')
+                ->innerJoin('m.rooms', 'r')
+                ->where('r.id = :roomId')
+                ->andWhere('m.createTime > :since')
+                ->setParameter('roomId', $room->getId())
+                ->setParameter('since', new \DateTimeImmutable('@' . intval($since)))
+            ;
+
+            /** @var array<Message> $messages */
             $messages = $qb->getQuery()->getResult();
-            
+
             $result = [];
             foreach ($messages as $message) {
+                if (!($message instanceof Message)) {
+                    continue;
+                }
+
+                $encodedData = json_encode(array_merge([$message->getEvent()], $message->getData()));
                 $result[] = [
                     'packet' => new SocketPacket(
-                        SocketPacketType::EVENT, 
+                        SocketPacketType::EVENT,
                         null,
                         null,
-                        json_encode(array_merge([$message->getEvent()], $message->getData()))
+                        false !== $encodedData ? $encodedData : null
                     ),
-                    'senderId' => $message->getSender() ? $message->getSender()->getSocketId() : null,
-                    'timestamp' => $message->getCreateTime()->getTimestamp(),
+                    'senderId' => $message->getSender()?->getSocketId(),
+                    'timestamp' => $message->getCreateTime()?->getTimestamp() ?? 0,
                 ];
             }
-            
+
             return $result;
         }
 
@@ -122,13 +131,13 @@ class DeliveryService
     {
         // 清理内存中的队列
         $now = microtime(true);
-        foreach ($this->queues as $roomName => &$queue) {
-            $queue = array_filter(
+        foreach ($this->queues as $roomName => $queue) {
+            $this->queues[$roomName] = array_filter(
                 $queue,
-                fn ($msg) => ($now - $msg['timestamp']) <= self::QUEUE_CLEANUP_AGE
+                static fn ($msg) => ($now - $msg['timestamp']) <= self::QUEUE_CLEANUP_AGE
             );
         }
-        
+
         // 清理数据库中的旧投递记录
         // 这里使用已有的 cleanupOldDeliveries 方法
         $this->cleanupDeliveries();
@@ -169,8 +178,8 @@ class DeliveryService
     public function retry(Delivery $delivery): bool
     {
         if ($delivery->getRetries() >= self::MAX_RETRIES) {
-            $delivery->setStatus(MessageStatus::FAILED)
-                ->setError('Max retries exceeded');
+            $delivery->setStatus(MessageStatus::FAILED);
+            $delivery->setError('Max retries exceeded');
             $this->em->flush();
 
             return false;
@@ -190,8 +199,8 @@ class DeliveryService
      */
     public function markFailed(Delivery $delivery, string $error): void
     {
-        $delivery->setStatus(MessageStatus::FAILED)
-            ->setError($error);
+        $delivery->setStatus(MessageStatus::FAILED);
+        $delivery->setError($error);
         $this->em->flush();
     }
 
@@ -213,33 +222,70 @@ class DeliveryService
     private function persistMessage(string $roomName, SocketPacket $packet, string $senderId): void
     {
         $room = $this->roomRepository->findByName($roomName);
-        if ($room === null) {
+        if (null === $room) {
             return;
         }
 
-        // 创建消息记录
-        $message = new Message();
-        $message->setEvent($packet->getData() !== null ? json_decode($packet->getData(), true)[0] : '')
-            ->setData($packet->getData() !== null ? array_slice(json_decode($packet->getData(), true), 1) : [])
-            ->setSender($this->socketRepository->findBySessionId($senderId))
-            ->setMetadata([
-                'namespace' => $packet->getNamespace(),
-                'messageId' => $packet->getId(),
-            ]);
-        $message->addRoom($room);
+        $message = $this->createMessageFromPacket($packet, $senderId, $room);
         $this->em->persist($message);
 
-        // 创建投递记录
+        $this->createDeliveryRecords($message, $room, $senderId);
+        $this->em->flush();
+    }
+
+    /**
+     * 从SocketPacket创建Message实体
+     */
+    private function createMessageFromPacket(SocketPacket $packet, string $senderId, Room $room): Message
+    {
+        $message = new Message();
+        $this->setMessageDataFromPacket($message, $packet);
+        $message->setSender($this->socketRepository->findBySessionId($senderId));
+        $message->setMetadata([
+            'namespace' => $packet->getNamespace(),
+            'messageId' => $packet->getId(),
+        ]);
+        $message->addRoom($room);
+
+        return $message;
+    }
+
+    /**
+     * 设置Message的事件和数据
+     */
+    private function setMessageDataFromPacket(Message $message, SocketPacket $packet): void
+    {
+        $packetData = $packet->getData();
+        if (null !== $packetData) {
+            $decodedData = json_decode($packetData, true);
+            if (is_array($decodedData) && count($decodedData) > 0) {
+                $message->setEvent(is_string($decodedData[0]) ? $decodedData[0] : '');
+                /** @var array<string, mixed> $messageData */
+                $messageData = array_slice($decodedData, 1);
+                $message->setData($messageData);
+            } else {
+                $message->setEvent('');
+                $message->setData([]);
+            }
+        } else {
+            $message->setEvent('');
+            $message->setData([]);
+        }
+    }
+
+    /**
+     * 创建投递记录
+     */
+    private function createDeliveryRecords(Message $message, Room $room, string $senderId): void
+    {
         foreach ($room->getSockets() as $socket) {
             if ($socket->getSessionId() !== $senderId) {
                 $delivery = new Delivery();
-                $delivery->setMessage($message)
-                    ->setSocket($socket)
-                    ->setStatus(MessageStatus::PENDING);
+                $delivery->setMessage($message);
+                $delivery->setSocket($socket);
+                $delivery->setStatus(MessageStatus::PENDING);
                 $this->em->persist($delivery);
             }
         }
-
-        $this->em->flush();
     }
 }

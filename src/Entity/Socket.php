@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use SocketIoBundle\Repository\SocketRepository;
+use Symfony\Component\Validator\Constraints as Assert;
 use Tourze\DoctrineIndexedBundle\Attribute\IndexColumn;
 use Tourze\DoctrineSnowflakeBundle\Traits\SnowflakeKeyAware;
 use Tourze\DoctrineTimestampBundle\Traits\TimestampableAware;
@@ -20,39 +21,61 @@ class Socket implements \Stringable
 
     #[IndexColumn]
     #[ORM\Column(type: Types::STRING, length: 64, unique: true, options: ['comment' => '会话 ID'])]
-    private string $sessionId;
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 64)]
+    private ?string $sessionId = null;
 
     #[IndexColumn]
     #[ORM\Column(type: Types::STRING, length: 64, unique: true, options: ['comment' => 'Socket ID'])]
-    private string $socketId;
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 64)]
+    private ?string $socketId = null;
 
     #[ORM\Column(type: Types::STRING, length: 255, nullable: false, options: ['comment' => '命名空间'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     private string $namespace = '/';
 
     #[ORM\Column(type: Types::STRING, length: 255, nullable: true, options: ['comment' => '客户端 ID'])]
+    #[Assert\Length(max: 255)]
     private ?string $clientId = null;
 
+    /**
+     * @var array<string, mixed>|null
+     */
     #[ORM\Column(type: Types::JSON, nullable: true, options: ['comment' => '握手数据'])]
+    #[Assert\Type(type: 'array')]
     private ?array $handshake = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '最后 Ping 时间'])]
+    #[Assert\Type(type: \DateTimeImmutable::class)]
     private ?\DateTimeImmutable $lastPingTime = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '最后消息时间'])]
+    #[Assert\Type(type: \DateTimeImmutable::class)]
     private ?\DateTimeImmutable $lastDeliverTime = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true, options: ['comment' => '最后活跃时间'])]
+    #[Assert\Type(type: \DateTimeImmutable::class)]
     private ?\DateTimeImmutable $lastActiveTime = null;
 
     #[ORM\Column(type: Types::BOOLEAN, options: ['comment' => '是否连接'])]
+    #[Assert\Type(type: 'bool')]
     private bool $connected = true;
 
     #[ORM\Column(type: Types::INTEGER, options: ['comment' => '轮询次数'])]
+    #[Assert\Range(min: 0)]
     private int $pollCount = 0;
 
     #[ORM\Column(type: Types::STRING, length: 32, options: ['comment' => '传输方式'])]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 32)]
+    #[Assert\Choice(choices: ['polling', 'websocket'])]
     private string $transport = 'polling';
 
+    /**
+     * @var Collection<int, Room>
+     */
     #[ORM\ManyToMany(targetEntity: Room::class, inversedBy: 'sockets')]
     #[ORM\JoinTable(
         name: 'ims_socket_io_room_membership',
@@ -65,27 +88,38 @@ class Socket implements \Stringable
     )]
     private Collection $rooms;
 
+    /**
+     * @var Collection<int, Delivery>
+     */
     #[ORM\OneToMany(targetEntity: Delivery::class, mappedBy: 'socket')]
     private Collection $deliveries;
 
-    public function __construct(string $sessionId, string $socketId)
+    public function __construct()
     {
-        $this->sessionId = $sessionId;
-        $this->socketId = $socketId;
         $this->rooms = new ArrayCollection();
         $this->deliveries = new ArrayCollection();
         $this->lastPingTime = new \DateTimeImmutable();
         $this->lastActiveTime = new \DateTimeImmutable();
     }
 
-    public function getSessionId(): string
+    public function getSessionId(): ?string
     {
         return $this->sessionId;
     }
 
-    public function getSocketId(): string
+    public function setSessionId(string $sessionId): void
+    {
+        $this->sessionId = $sessionId;
+    }
+
+    public function getSocketId(): ?string
     {
         return $this->socketId;
+    }
+
+    public function setSocketId(string $socketId): void
+    {
+        $this->socketId = $socketId;
     }
 
     public function getNamespace(): string
@@ -93,11 +127,9 @@ class Socket implements \Stringable
         return $this->namespace;
     }
 
-    public function setNamespace(string $namespace): self
+    public function setNamespace(string $namespace): void
     {
         $this->namespace = $namespace;
-
-        return $this;
     }
 
     public function getClientId(): ?string
@@ -105,23 +137,25 @@ class Socket implements \Stringable
         return $this->clientId;
     }
 
-    public function setClientId(?string $clientId): self
+    public function setClientId(?string $clientId): void
     {
         $this->clientId = $clientId;
-
-        return $this;
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     public function getHandshake(): ?array
     {
         return $this->handshake;
     }
 
-    public function setHandshake(?array $handshake): self
+    /**
+     * @param array<string, mixed>|null $handshake
+     */
+    public function setHandshake(?array $handshake): void
     {
         $this->handshake = $handshake;
-
-        return $this;
     }
 
     public function getLastPingTime(): ?\DateTimeImmutable
@@ -129,19 +163,15 @@ class Socket implements \Stringable
         return $this->lastPingTime;
     }
 
-    public function setLastPingTime(?\DateTimeImmutable $lastPingTime): self
+    public function setLastPingTime(?\DateTimeImmutable $lastPingTime): void
     {
         $this->lastPingTime = $lastPingTime;
-
-        return $this;
     }
 
-    public function updatePingTime(): self
+    public function updatePingTime(): void
     {
         $this->lastPingTime = new \DateTimeImmutable();
         $this->updateLastActiveTime();
-
-        return $this;
     }
 
     public function getLastActiveTime(): ?\DateTimeImmutable
@@ -149,11 +179,9 @@ class Socket implements \Stringable
         return $this->lastActiveTime;
     }
 
-    public function updateLastActiveTime(): self
+    public function updateLastActiveTime(): void
     {
         $this->lastActiveTime = new \DateTimeImmutable();
-
-        return $this;
     }
 
     public function isConnected(): bool
@@ -161,11 +189,9 @@ class Socket implements \Stringable
         return $this->connected;
     }
 
-    public function setConnected(bool $connected): self
+    public function setConnected(bool $connected): void
     {
         $this->connected = $connected;
-
-        return $this;
     }
 
     public function getTransport(): string
@@ -173,38 +199,35 @@ class Socket implements \Stringable
         return $this->transport;
     }
 
-    public function setTransport(string $transport): self
+    public function setTransport(string $transport): void
     {
         $this->transport = $transport;
-
-        return $this;
     }
 
+    /**
+     * @return Collection<int, Room>
+     */
     public function getRooms(): Collection
     {
         return $this->rooms;
     }
 
-    public function joinRoom(Room $room): self
+    public function joinRoom(Room $room): void
     {
         if (!$this->rooms->contains($room)) {
             $this->rooms->add($room);
             $room->addSocket($this);
             $this->updateLastActiveTime();
         }
-
-        return $this;
     }
 
-    public function leaveRoom(Room $room): self
+    public function leaveRoom(Room $room): void
     {
         if ($this->rooms->contains($room)) {
             $this->rooms->removeElement($room);
             $room->removeSocket($this);
             $this->updateLastActiveTime();
         }
-
-        return $this;
     }
 
     public function isInRoom(Room $room): bool
@@ -218,28 +241,27 @@ class Socket implements \Stringable
         );
     }
 
-    public function leaveAllRooms(): self
+    public function leaveAllRooms(): void
     {
         foreach ($this->rooms as $room) {
             $this->leaveRoom($room);
         }
-
-        return $this;
     }
 
+    /**
+     * @return Collection<int, Delivery>
+     */
     public function getDeliveries(): Collection
     {
         return $this->deliveries;
     }
 
-    public function addDelivery(Delivery $delivery): self
+    public function addDelivery(Delivery $delivery): void
     {
         if (!$this->deliveries->contains($delivery)) {
             $this->deliveries->add($delivery);
             $delivery->setSocket($this);
         }
-
-        return $this;
     }
 
     public function getPollCount(): int
@@ -247,18 +269,14 @@ class Socket implements \Stringable
         return $this->pollCount;
     }
 
-    public function incrementPollCount(): self
+    public function incrementPollCount(): void
     {
         ++$this->pollCount;
-
-        return $this;
     }
 
-    public function resetPollCount(): self
+    public function resetPollCount(): void
     {
         $this->pollCount = 0;
-
-        return $this;
     }
 
     public function getLastDeliverTime(): ?\DateTimeImmutable
@@ -266,19 +284,15 @@ class Socket implements \Stringable
         return $this->lastDeliverTime;
     }
 
-    public function setLastDeliverTime(?\DateTimeImmutable $lastDeliverTime): self
+    public function setLastDeliverTime(?\DateTimeImmutable $lastDeliverTime): void
     {
         $this->lastDeliverTime = $lastDeliverTime;
-
-        return $this;
     }
 
-    public function updateDeliverTime(): self
+    public function updateDeliverTime(): void
     {
         $this->lastDeliverTime = new \DateTimeImmutable();
         $this->updateLastActiveTime();
-
-        return $this;
     }
 
     public function __toString(): string
