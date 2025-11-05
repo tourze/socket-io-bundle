@@ -87,13 +87,14 @@ final class DeliveryServiceTest extends TestCase
         $senderId = 'sender123';
         $packet = new SocketPacket(SocketPacketType::EVENT, '/', null, '["message","Hello"]');
 
-        // 必须使用具体的类进行 Mock：
-        // 理由1： 该类包含特定的业务逻辑，需要验证具体的方法调用
-        // 理由2： 测试需要验证与该类相关的具体行为，而非抽象定义
-        // 理由3： 没有定义相应的接口，使用具体类能确保测试的准确性
-        /** @var Room&MockObject $room */
-        $room = $this->createMock(Room::class);
-        $room->method('getId')->willReturn('1');
+        // 使用真实的 Room 对象，因为 getId() 方法是 final 的无法 mock
+        $room = new Room();
+        $room->setName($roomName);
+        // 使用反射设置 ID，因为 setId() 也是 final 的
+        $reflection = new \ReflectionClass($room);
+        $idProperty = $reflection->getProperty('id');
+        $idProperty->setAccessible(true);
+        $idProperty->setValue($room, '1');
 
         $this->roomRepository->expects($this->once())
             ->method('findByName')
@@ -148,13 +149,14 @@ final class DeliveryServiceTest extends TestCase
         $packet = new SocketPacket(SocketPacketType::EVENT, '/', null, '["message","Hello"]');
 
         // First enqueue a message
-        // 必须使用具体的类进行 Mock：
-        // 理由1： 该类包含特定的业务逻辑，需要验证具体的方法调用
-        // 理由2： 测试需要验证与该类相关的具体行为，而非抽象定义
-        // 理由3： 没有定义相应的接口，使用具体类能确保测试的准确性
-        /** @var Room&MockObject $room */
-        $room = $this->createMock(Room::class);
-        $room->method('getId')->willReturn('1');
+        // 使用真实的 Room 对象，因为 getId() 方法是 final 的无法 mock
+        $room = new Room();
+        $room->setName($roomName);
+        // 使用反射设置 ID，因为 setId() 也是 final 的
+        $reflection = new \ReflectionClass($room);
+        $idProperty = $reflection->getProperty('id');
+        $idProperty->setAccessible(true);
+        $idProperty->setValue($room, '1');
 
         $this->roomRepository->expects($this->once())
             ->method('findByName')
@@ -179,13 +181,14 @@ final class DeliveryServiceTest extends TestCase
     public function testDequeueFromDatabaseWhenNoQueueExists(): void
     {
         $roomName = 'test-room';
-        // 必须使用具体的类进行 Mock：
-        // 理由1： 该类包含特定的业务逻辑，需要验证具体的方法调用
-        // 理由2： 测试需要验证与该类相关的具体行为，而非抽象定义
-        // 理由3： 没有定义相应的接口，使用具体类能确保测试的准确性
-        /** @var Room&MockObject $room */
-        $room = $this->createMock(Room::class);
-        $room->method('getId')->willReturn('1');
+        // 使用真实的 Room 对象，因为 getId() 方法是 final 的无法 mock
+        $room = new Room();
+        $room->setName($roomName);
+        // 使用反射设置 ID，因为 setId() 也是 final 的
+        $reflection = new \ReflectionClass($room);
+        $idProperty = $reflection->getProperty('id');
+        $idProperty->setAccessible(true);
+        $idProperty->setValue($room, '1');
 
         // 必须使用具体的类进行 Mock：
         // 理由1： 该类包含特定的业务逻辑，需要验证具体的方法调用
@@ -452,13 +455,14 @@ final class DeliveryServiceTest extends TestCase
         $packet = new SocketPacket(SocketPacketType::EVENT, '/', null, '["message","Hello"]');
 
         // Enqueue a message
-        // 必须使用具体的类进行 Mock：
-        // 理由1： 该类包含特定的业务逻辑，需要验证具体的方法调用
-        // 理由2： 测试需要验证与该类相关的具体行为，而非抽象定义
-        // 理由3： 没有定义相应的接口，使用具体类能确保测试的准确性
-        /** @var Room&MockObject $room */
-        $room = $this->createMock(Room::class);
-        $room->method('getId')->willReturn('1');
+        // 使用真实的 Room 对象，因为 getId() 方法是 final 的无法 mock
+        $room = new Room();
+        $room->setName($roomName);
+        // 使用反射设置 ID，因为 setId() 也是 final 的
+        $reflection = new \ReflectionClass($room);
+        $idProperty = $reflection->getProperty('id');
+        $idProperty->setAccessible(true);
+        $idProperty->setValue($room, '1');
 
         $this->roomRepository->expects($this->once())
             ->method('findByName')

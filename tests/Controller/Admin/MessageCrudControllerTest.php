@@ -29,20 +29,6 @@ final class MessageCrudControllerTest extends AbstractEasyAdminControllerTestCas
         return self::getService(MessageCrudController::class);
     }
 
-    /**
-     * 重写父类方法，提供测试所需的数据
-     * @return iterable<int, object>
-     */
-    protected function getFixturesData(): iterable
-    {
-        // 创建 Message 实体
-        $message = new Message();
-        $message->setEvent('test-event-' . uniqid());
-        $message->setData(['test' => 'data']);
-
-        yield $message;
-    }
-
     public static function provideIndexPageHeaders(): iterable
     {
         yield 'ID' => ['ID'];
@@ -363,4 +349,5 @@ final class MessageCrudControllerTest extends AbstractEasyAdminControllerTestCas
         $this->assertEquals('actions', $parameters[0]->getName(), 'Parameter should be named actions');
         $this->assertEquals('EasyCorp\Bundle\EasyAdminBundle\Config\Actions', (string) $parameters[0]->getType(), 'Parameter should be Actions type');
     }
+
 }

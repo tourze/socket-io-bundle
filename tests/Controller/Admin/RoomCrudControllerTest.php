@@ -26,20 +26,6 @@ final class RoomCrudControllerTest extends AbstractEasyAdminControllerTestCase
     }
 
     /**
-     * 重写父类方法，提供测试所需的数据
-     * @return iterable<int, object>
-     */
-    protected function getFixturesData(): iterable
-    {
-        // 创建 Room 实体
-        $room = new Room();
-        $room->setName('test-room-' . uniqid());
-        $room->setNamespace('/test-namespace');
-
-        yield $room;
-    }
-
-    /**
      * 提供索引页的表头信息 - 基于控制器的字段配置
      * @return iterable<string, array{string}>
      */
@@ -339,4 +325,5 @@ final class RoomCrudControllerTest extends AbstractEasyAdminControllerTestCase
         $room->setMetadata(null);
         $this->assertNull($room->getMetadata(), 'Null metadata should be stored correctly');
     }
+
 }

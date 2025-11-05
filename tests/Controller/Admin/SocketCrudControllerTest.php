@@ -347,4 +347,5 @@ final class SocketCrudControllerTest extends AbstractEasyAdminControllerTestCase
         $socket->setHandshake(null);
         $this->assertNull($socket->getHandshake(), 'Null handshake should be stored correctly');
     }
+
 }

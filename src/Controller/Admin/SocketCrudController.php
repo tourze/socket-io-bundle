@@ -194,7 +194,7 @@ final class SocketCrudController extends AbstractCrudController
     /**
      * 自定义操作：查看房间
      */
-    #[AdminAction(routePath: '{id}/view-rooms', routeName: 'view_rooms')]
+    #[AdminAction(routePath: '{entityId}/view-rooms', routeName: 'view_rooms')]
     public function viewRooms(AdminContext $context): Response
     {
         $socket = $context->getEntity()->getInstance();
@@ -220,7 +220,7 @@ final class SocketCrudController extends AbstractCrudController
     /**
      * 自定义操作：断开连接
      */
-    #[AdminAction(routePath: '{id}/disconnect', routeName: 'disconnect_socket')]
+    #[AdminAction(routePath: '{entityId}/disconnect', routeName: 'disconnect_socket')]
     public function disconnectSocket(AdminContext $context): Response
     {
         $socket = $context->getEntity()->getInstance();
@@ -241,7 +241,7 @@ final class SocketCrudController extends AbstractCrudController
     /**
      * 自定义操作：刷新状态
      */
-    #[AdminAction(routePath: '{id}/refresh-status', routeName: 'refresh_status')]
+    #[AdminAction(routePath: '{entityId}/refresh-status', routeName: 'refresh_status')]
     public function refreshStatus(AdminContext $context): Response
     {
         $socket = $context->getEntity()->getInstance();

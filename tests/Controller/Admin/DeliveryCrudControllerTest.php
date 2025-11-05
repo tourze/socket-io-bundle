@@ -31,33 +31,6 @@ final class DeliveryCrudControllerTest extends AbstractEasyAdminControllerTestCa
     }
 
     /**
-     * 重写父类方法，提供测试所需的数据
-     * @return iterable<int, object>
-     */
-    protected function getFixturesData(): iterable
-    {
-        // 创建 Socket 实体
-        $socket = new Socket();
-        $socket->setSessionId('test-session-' . uniqid());
-        $socket->setSocketId('test-socket-' . uniqid());
-
-        // 创建 Message 实体
-        $message = new Message();
-        $message->setEvent('test-event');
-        $message->setData(['test' => 'data']);
-
-        // 创建 Delivery 实体
-        $delivery = new Delivery();
-        $delivery->setSocket($socket);
-        $delivery->setMessage($message);
-        $delivery->setStatus(MessageStatus::PENDING);
-
-        yield $socket;
-        yield $message;
-        yield $delivery;
-    }
-
-    /**
      * 提供索引页的表头信息 - 基于控制器的字段配置
      * @return iterable<string, array{string}>
      */
@@ -496,4 +469,5 @@ final class DeliveryCrudControllerTest extends AbstractEasyAdminControllerTestCa
             );
         }
     }
+
 }
