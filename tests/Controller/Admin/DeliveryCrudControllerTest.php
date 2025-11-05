@@ -130,9 +130,7 @@ final class DeliveryCrudControllerTest extends AbstractEasyAdminControllerTestCa
 
     public function testIndexPageWithAuthentication(): void
     {
-        $client = self::createClientWithDatabase();
-        $this->createAdminUser('admin@test.com', 'password123');
-        $this->loginAsAdmin($client, 'admin@test.com', 'password123');
+        $client = $this->createAuthenticatedClient();
 
         try {
             $client->request('GET', $this->generateAdminUrl('index'));
@@ -454,9 +452,7 @@ final class DeliveryCrudControllerTest extends AbstractEasyAdminControllerTestCa
     public function testValidationErrors(): void
     {
         // 测试必填字段验证 - Socket 和 Message 字段为必填
-        $client = self::createClientWithDatabase();
-        $this->createAdminUser('admin@test.com', 'password123');
-        $this->loginAsAdmin($client, 'admin@test.com', 'password123');
+        $client = $this->createAuthenticatedClient();
 
         try {
             // 尝试访问新建页面

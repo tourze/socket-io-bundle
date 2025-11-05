@@ -93,9 +93,7 @@ final class MessageCrudControllerTest extends AbstractEasyAdminControllerTestCas
 
     public function testIndexPageWithAuthentication(): void
     {
-        $client = self::createClientWithDatabase();
-        $this->createAdminUser('admin@test.com', 'password123');
-        $this->loginAsAdmin($client, 'admin@test.com', 'password123');
+        $client = $this->createAuthenticatedClient();
 
         try {
             $client->request('GET', $this->generateAdminUrl('index', ['crudController' => MessageCrudController::class]));
