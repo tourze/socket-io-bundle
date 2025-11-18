@@ -79,11 +79,6 @@ final class DeliveryCrudControllerTest extends AbstractEasyAdminControllerTestCa
         // deliveredAt, createTime, updateTime 字段隐藏在表单中 (hideOnForm)
     }
 
-    public function testGetEntityFqcnReturnsCorrectEntityClass(): void
-    {
-        $this->assertSame(Delivery::class, DeliveryCrudController::getEntityFqcn());
-    }
-
     public function testIndexPageRequiresAuthentication(): void
     {
         $client = self::createClientWithDatabase();

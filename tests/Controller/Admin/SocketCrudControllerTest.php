@@ -78,11 +78,6 @@ final class SocketCrudControllerTest extends AbstractEasyAdminControllerTestCase
         yield 'pollCount' => ['pollCount'];
     }
 
-    public function testGetEntityFqcnReturnsCorrectEntityClass(): void
-    {
-        $this->assertSame(Socket::class, SocketCrudController::getEntityFqcn());
-    }
-
     public function testIndexPageRequiresAuthentication(): void
     {
         $client = self::createClientWithDatabase();

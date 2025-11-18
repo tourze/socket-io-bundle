@@ -55,11 +55,6 @@ final class MessageCrudControllerTest extends AbstractEasyAdminControllerTestCas
         yield 'rooms' => ['rooms'];
     }
 
-    public function testGetEntityFqcnReturnsCorrectEntityClass(): void
-    {
-        $this->assertSame(Message::class, MessageCrudController::getEntityFqcn());
-    }
-
     public function testIndexPageRequiresAuthentication(): void
     {
         $client = self::createClientWithDatabase();

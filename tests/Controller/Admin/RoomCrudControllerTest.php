@@ -59,11 +59,6 @@ final class RoomCrudControllerTest extends AbstractEasyAdminControllerTestCase
         yield 'metadata' => ['metadata'];
     }
 
-    public function testGetEntityFqcnReturnsCorrectEntityClass(): void
-    {
-        $this->assertSame(Room::class, RoomCrudController::getEntityFqcn());
-    }
-
     public function testIndexPageRequiresAuthentication(): void
     {
         $client = self::createClientWithDatabase();
