@@ -186,7 +186,7 @@ final class SocketHeartbeatCommandTest extends AbstractCommandTestCase
         $this->assertSame('SocketIoBundle\Command\SocketHeartbeatCommand', $reflection->getName());
         $this->assertTrue($reflection->isSubclassOf(Command::class));
         $this->assertFalse($reflection->isAbstract());
-        $this->assertFalse($reflection->isFinal());
+        $this->assertTrue($reflection->isFinal());
     }
 
     public function testOptionDaemon(): void

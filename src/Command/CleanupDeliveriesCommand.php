@@ -16,7 +16,7 @@ use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
     description: '清理过期的消息投递记录'
 )]
 #[Autoconfigure(public: true)]
-class CleanupDeliveriesCommand extends Command
+final class CleanupDeliveriesCommand extends Command
 {
     public const NAME = 'socket:cleanup-deliveries';
 

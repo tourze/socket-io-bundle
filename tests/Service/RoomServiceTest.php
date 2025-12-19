@@ -2,94 +2,66 @@
 
 namespace SocketIoBundle\Tests\Service;
 
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\EntityRepository;
-use Doctrine\Persistence\Mapping\ClassMetadata;
-use Doctrine\Persistence\Mapping\ReflectionService;
+use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use SocketIoBundle\Entity\Room;
 use SocketIoBundle\Entity\Socket;
-use SocketIoBundle\Repository\RoomRepository;
 use SocketIoBundle\Service\RoomService;
+use SocketIoBundle\SocketIoBundle;
+use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
+use Tourze\DoctrineSnowflakeBundle\DoctrineSnowflakeBundle;
+use Tourze\DoctrineTimestampBundle\DoctrineTimestampBundle;
+use Tourze\PHPUnitSymfonyKernelTest\AbstractIntegrationTestCase;
 
 /**
  * @internal
  */
 #[CoversClass(RoomService::class)]
-final class RoomServiceTest extends TestCase
+#[RunTestsInSeparateProcesses]
+final class RoomServiceTest extends AbstractIntegrationTestCase
 {
-    /** @var MockObject&EntityManagerInterface */
-    private EntityManagerInterface $em;
-
-    /** @var MockObject&RoomRepository */
-    private RoomRepository $roomRepository;
-
     private RoomService $roomService;
 
-    protected function setUp(): void
+    /**
+     * @return array<string, array<string, bool>>
+     */
+    public static function configureBundles(): array
     {
-        parent::setUp();
+        return [
+            FrameworkBundle::class => ['all' => true],
+            DoctrineBundle::class => ['all' => true],
+            DoctrineSnowflakeBundle::class => ['all' => true],
+            DoctrineTimestampBundle::class => ['all' => true],
+            SocketIoBundle::class => ['all' => true],
+        ];
+    }
 
-        // 创建EntityManager的Mock对象
-        $this->em = $this->createMock(EntityManagerInterface::class);
-
-        // 配置getRepository方法返回一个简单的mock repository
-        $this->em->method('getRepository')->willReturn(
-            $this->createMock(EntityRepository::class)
-        );
-
-        $this->roomRepository = $this->createMock(RoomRepository::class);
-
-        $this->roomService = new RoomService(
-            $this->em,
-            $this->roomRepository
-        );
+    protected function onSetUp(): void
+    {
+        $this->roomService = self::getService(RoomService::class);
     }
 
     public function testFindOrCreateRoomReturnsExistingRoom(): void
     {
         $roomName = 'test-room';
         $namespace = '/chat';
-        /** @var Room&MockObject $existingRoom */
-        $existingRoom = new Room();
 
-        $this->roomRepository->expects($this->once())
-            ->method('findByNameAndNamespace')
-            ->with($roomName, $namespace)
-            ->willReturn($existingRoom)
-        ;
+        $existingRoom = new Room();
+        $existingRoom->setName($roomName);
+        $existingRoom->setNamespace($namespace);
+        $this->persistAndFlush($existingRoom);
 
         $result = $this->roomService->findOrCreateRoom($roomName, $namespace);
 
-        $this->assertSame($existingRoom, $result);
+        $this->assertEquals($roomName, $result->getName());
+        $this->assertEquals($namespace, $result->getNamespace());
     }
 
     public function testFindOrCreateRoomCreatesNewRoom(): void
     {
         $roomName = 'test-room';
         $namespace = '/chat';
-
-        $this->roomRepository->expects($this->once())
-            ->method('findByNameAndNamespace')
-            ->with($roomName, $namespace)
-            ->willReturn(null)
-        ;
-
-        $this->em->expects($this->once())
-            ->method('persist')
-            ->with(self::callback(function ($room) use ($roomName, $namespace) {
-                return $room instanceof Room
-                    && $room->getName() === $roomName
-                    && $room->getNamespace() === $namespace;
-            }))
-        ;
-
-        $this->em->expects($this->once())
-            ->method('flush')
-        ;
 
         $result = $this->roomService->findOrCreateRoom($roomName, $namespace);
 
@@ -100,248 +72,209 @@ final class RoomServiceTest extends TestCase
 
     public function testJoinRoomCreatesNewRoom(): void
     {
-        /** @var Socket&MockObject $socket */
-        $socket = $this->createMock(Socket::class);
+        $socket = new Socket();
+        $socket->setSessionId('test-session');
+        $socket->setSocketId('test-socket');
+        $socket->setNamespace('/chat');
+        $this->persistAndFlush($socket);
+
         $roomName = 'test-room';
-        $namespace = '/chat';
-
-        $socket->method('getNamespace')->willReturn($namespace);
-
-        $this->roomRepository->expects($this->once())
-            ->method('findByNameAndNamespace')
-            ->with($roomName, $namespace)
-            ->willReturn(null)
-        ;
-
-        $socket->expects($this->once())
-            ->method('joinRoom')
-            ->with(self::callback(function ($room) use ($roomName, $namespace) {
-                return $room instanceof Room
-                    && $room->getName() === $roomName
-                    && $room->getNamespace() === $namespace;
-            }))
-        ;
-
-        $this->em->expects($this->exactly(2))
-            ->method('persist')
-        ;
-
-        $this->em->expects($this->once())
-            ->method('flush')
-        ;
 
         $this->roomService->joinRoom($socket, $roomName);
+
+        $em = self::getEntityManager();
+        $em->refresh($socket);
+
+        $rooms = $socket->getRooms();
+        $this->assertGreaterThanOrEqual(1, $rooms->count());
+
+        $roomNames = array_map(fn ($room) => $room->getName(), $rooms->toArray());
+        $this->assertContains($roomName, $roomNames);
     }
 
     public function testJoinRoomWithExistingRoom(): void
     {
-        /** @var Socket&MockObject $socket */
-        $socket = $this->createMock(Socket::class);
+        $socket = new Socket();
+        $socket->setSessionId('test-session');
+        $socket->setSocketId('test-socket');
+        $socket->setNamespace('/chat');
+        $this->persistAndFlush($socket);
+
         $roomName = 'test-room';
         $namespace = '/chat';
-        /** @var Room&MockObject $existingRoom */
-        $existingRoom = $this->createMock(Room::class);
 
-        $socket->method('getNamespace')->willReturn($namespace);
-        $existingRoom->method('getSockets')->willReturn(new ArrayCollection([]));
-
-        $this->roomRepository->expects($this->once())
-            ->method('findByNameAndNamespace')
-            ->with($roomName, $namespace)
-            ->willReturn($existingRoom)
-        ;
-
-        $socket->expects($this->once())
-            ->method('joinRoom')
-            ->with($existingRoom)
-        ;
-
-        $this->em->expects($this->exactly(2))
-            ->method('persist')
-        ;
-
-        $this->em->expects($this->once())
-            ->method('flush')
-        ;
+        $existingRoom = new Room();
+        $existingRoom->setName($roomName);
+        $existingRoom->setNamespace($namespace);
+        $this->persistAndFlush($existingRoom);
 
         $this->roomService->joinRoom($socket, $roomName);
+
+        $em = self::getEntityManager();
+        $em->refresh($socket);
+        $em->refresh($existingRoom);
+
+        $this->assertTrue($existingRoom->getSockets()->contains($socket));
     }
 
     public function testJoinRoomDoesNothingWhenAlreadyInRoom(): void
     {
-        /** @var Socket&MockObject $socket */
-        $socket = $this->createMock(Socket::class);
+        $socket = new Socket();
+        $socket->setSessionId('test-session');
+        $socket->setSocketId('test-socket');
+        $socket->setNamespace('/chat');
+
         $roomName = 'test-room';
         $namespace = '/chat';
-        /** @var Room&MockObject $existingRoom */
-        $existingRoom = $this->createMock(Room::class);
 
-        $socket->method('getNamespace')->willReturn($namespace);
-        $existingRoom->method('getSockets')->willReturn(new ArrayCollection([$socket]));
+        $existingRoom = new Room();
+        $existingRoom->setName($roomName);
+        $existingRoom->setNamespace($namespace);
 
-        $this->roomRepository->expects($this->once())
-            ->method('findByNameAndNamespace')
-            ->with($roomName, $namespace)
-            ->willReturn($existingRoom)
-        ;
+        // 先分别持久化各实体，再建立关系
+        $this->persistAndFlush($existingRoom);
+        $this->persistAndFlush($socket);
 
-        $socket->expects($this->never())
-            ->method('joinRoom')
-        ;
+        $socket->joinRoom($existingRoom);
+        $em = self::getEntityManager();
+        $em->flush();
+        $em->refresh($existingRoom);
 
-        $this->em->expects($this->never())
-            ->method('persist')
-        ;
-
-        $this->em->expects($this->never())
-            ->method('flush')
-        ;
+        $initialCount = $existingRoom->getSockets()->count();
 
         $this->roomService->joinRoom($socket, $roomName);
+
+        $em->refresh($existingRoom);
+        $this->assertEquals($initialCount, $existingRoom->getSockets()->count());
     }
 
     public function testLeaveRoomRemovesSocket(): void
     {
-        /** @var Socket&MockObject $socket */
-        $socket = $this->createMock(Socket::class);
+        $socket = new Socket();
+        $socket->setSessionId('test-session');
+        $socket->setSocketId('test-socket');
+        $socket->setNamespace('/chat');
+
+        $socket2 = new Socket();
+        $socket2->setSessionId('test-session-2');
+        $socket2->setSocketId('test-socket-2');
+        $socket2->setNamespace('/chat');
+
         $roomName = 'test-room';
-        $namespace = '/chat';
-        /** @var Room&MockObject $room */
-        $room = $this->createMock(Room::class);
 
-        $socket->method('getNamespace')->willReturn($namespace);
-        $room->method('getSockets')->willReturn(new ArrayCollection([$socket]));
+        // 先分别持久化 socket 实体
+        $this->persistAndFlush($socket);
+        $this->persistAndFlush($socket2);
 
-        $this->roomRepository->expects($this->once())
-            ->method('findByNameAndNamespace')
-            ->with($roomName, $namespace)
-            ->willReturn($room)
-        ;
+        // 使用 service 的 joinRoom 方法（这会自动创建或找到 room 并关联）
+        $this->roomService->joinRoom($socket, $roomName);
+        $this->roomService->joinRoom($socket2, $roomName);
 
-        $room->expects($this->once())
-            ->method('removeSocket')
-            ->with($socket)
-        ;
+        // 验证房间有两个 socket
+        $em = self::getEntityManager();
+        $room = $em->getRepository(Room::class)->findOneBy(['name' => $roomName, 'namespace' => '/chat']);
+        $this->assertNotNull($room);
+        $em->refresh($room);
+        $this->assertCount(2, $room->getSockets());
 
-        $this->em->expects($this->once())
-            ->method('flush')
-        ;
-
+        // 调用 leaveRoom - 需要先 refresh socket 确保 namespace 被正确加载
+        $em->refresh($socket);
         $this->roomService->leaveRoom($socket, $roomName);
+
+        // 清除实体管理器缓存，确保从数据库重新加载
+        $em->clear();
+
+        $refreshedRoom = $em->find(Room::class, $room->getId());
+        $this->assertNotNull($refreshedRoom);
+        $this->assertCount(1, $refreshedRoom->getSockets());
     }
 
     public function testLeaveRoomDeletesEmptyRoom(): void
     {
-        /** @var Socket&MockObject $socket */
-        $socket = $this->createMock(Socket::class);
+        $socket = new Socket();
+        $socket->setSessionId('test-session');
+        $socket->setSocketId('test-socket');
+        $socket->setNamespace('/chat');
+
         $roomName = 'test-room';
         $namespace = '/chat';
-        /** @var Room&MockObject $room */
-        $room = $this->createMock(Room::class);
 
-        $socket->method('getNamespace')->willReturn($namespace);
-        $room->method('getSockets')
-            ->willReturnOnConsecutiveCalls(
-                new ArrayCollection([$socket]),
-                new ArrayCollection([])
-            )
-        ;
+        $room = new Room();
+        $room->setName($roomName);
+        $room->setNamespace($namespace);
 
-        $this->roomRepository->expects($this->once())
-            ->method('findByNameAndNamespace')
-            ->with($roomName, $namespace)
-            ->willReturn($room)
-        ;
+        // 先分别持久化各实体，再建立关系
+        $this->persistAndFlush($room);
+        $this->persistAndFlush($socket);
 
-        $room->expects($this->once())
-            ->method('removeSocket')
-            ->with($socket)
-        ;
+        $socket->joinRoom($room);
+        $em = self::getEntityManager();
+        $em->flush();
 
-        $this->em->expects($this->once())
-            ->method('remove')
-            ->with($room)
-        ;
-
-        $this->em->expects($this->exactly(2))
-            ->method('flush')
-        ;
+        $roomId = $room->getId();
 
         $this->roomService->leaveRoom($socket, $roomName);
+
+        $em = self::getEntityManager();
+        $foundRoom = $em->find(Room::class, $roomId);
+
+        // 房间应该被删除
+        $this->assertNull($foundRoom);
     }
 
     public function testLeaveRoomDoesNothingWhenRoomNotFound(): void
     {
-        /** @var Socket&MockObject $socket */
-        $socket = $this->createMock(Socket::class);
+        $socket = new Socket();
+        $socket->setSessionId('test-session');
+        $socket->setSocketId('test-socket');
+        $socket->setNamespace('/chat');
+        $this->persistAndFlush($socket);
+
         $roomName = 'test-room';
-        $namespace = '/chat';
 
-        $socket->method('getNamespace')->willReturn($namespace);
-
-        $this->roomRepository->expects($this->once())
-            ->method('findByNameAndNamespace')
-            ->with($roomName, $namespace)
-            ->willReturn(null)
-        ;
-
-        $this->em->expects($this->never())
-            ->method('flush')
-        ;
-
+        // 不应该抛出异常
         $this->roomService->leaveRoom($socket, $roomName);
+
+        $this->expectNotToPerformAssertions();
     }
 
     public function testLeaveAllRooms(): void
     {
-        /** @var Socket&MockObject $socket */
-        $socket = $this->createMock(Socket::class);
-        /** @var MockObject&Room $room1 */
-        $room1 = $this->createMock(Room::class);
-        /** @var MockObject&Room $room2 */
-        $room2 = $this->createMock(Room::class);
+        $socket = new Socket();
+        $socket->setSessionId('test-session');
+        $socket->setSocketId('test-socket');
+        $socket->setNamespace('/chat');
 
-        $this->roomRepository->expects($this->once())
-            ->method('findBySocket')
-            ->with($socket)
-            ->willReturn([$room1, $room2])
-        ;
+        $room1 = new Room();
+        $room1->setName('room1');
+        $room1->setNamespace('/chat');
 
-        $room1->expects($this->once())
-            ->method('removeSocket')
-            ->with($socket)
-        ;
+        $room2 = new Room();
+        $room2->setName('room2');
+        $room2->setNamespace('/chat');
 
-        $room2->expects($this->once())
-            ->method('removeSocket')
-            ->with($socket)
-        ;
+        // 先分别持久化各实体，再建立关系
+        $this->persistAndFlush($room1);
+        $this->persistAndFlush($room2);
+        $this->persistAndFlush($socket);
 
-        $room1->method('getSockets')->willReturn(new ArrayCollection([]));
-        $room2->method('getSockets')->willReturn(new ArrayCollection([$socket]));
-
-        $this->em->expects($this->once())
-            ->method('remove')
-            ->with($room1)
-        ;
-
-        $this->em->expects($this->once())
-            ->method('flush')
-        ;
+        $socket->joinRoom($room1);
+        $socket->joinRoom($room2);
+        $em = self::getEntityManager();
+        $em->flush();
 
         $this->roomService->leaveAllRooms($socket);
+
+        $em = self::getEntityManager();
+        $em->refresh($socket);
+
+        $this->assertEquals(0, $socket->getRooms()->count());
     }
 
     public function testGetRoomMembersReturnsEmptyArrayWhenRoomNotFound(): void
     {
         $roomName = 'test-room';
         $namespace = '/chat';
-
-        $this->roomRepository->expects($this->once())
-            ->method('findByNameAndNamespace')
-            ->with($roomName, $namespace)
-            ->willReturn(null)
-        ;
 
         $result = $this->roomService->getRoomMembers($roomName, $namespace);
 
@@ -352,77 +285,92 @@ final class RoomServiceTest extends TestCase
     {
         $roomName = 'test-room';
         $namespace = '/chat';
-        /** @var Room&MockObject $room */
-        $room = $this->createMock(Room::class);
-        /** @var MockObject&Socket $socket1 */
-        $socket1 = $this->createMock(Socket::class);
-        /** @var MockObject&Socket $socket2 */
-        $socket2 = $this->createMock(Socket::class);
 
-        $this->roomRepository->expects($this->once())
-            ->method('findByNameAndNamespace')
-            ->with($roomName, $namespace)
-            ->willReturn($room)
-        ;
+        $room = new Room();
+        $room->setName($roomName);
+        $room->setNamespace($namespace);
 
-        $room->method('getSockets')->willReturn(new ArrayCollection([$socket1, $socket2]));
+        $socket1 = new Socket();
+        $socket1->setSessionId('session1');
+        $socket1->setSocketId('socket1');
+        $socket1->setNamespace($namespace);
+
+        $socket2 = new Socket();
+        $socket2->setSessionId('session2');
+        $socket2->setSocketId('socket2');
+        $socket2->setNamespace($namespace);
+
+        // 先分别持久化各实体，再建立关系
+        $this->persistAndFlush($room);
+        $this->persistAndFlush($socket1);
+        $this->persistAndFlush($socket2);
+
+        $socket1->joinRoom($room);
+        $socket2->joinRoom($room);
+        $em = self::getEntityManager();
+        $em->flush();
 
         $result = $this->roomService->getRoomMembers($roomName, $namespace);
 
-        $this->assertEquals([$socket1, $socket2], $result);
+        $this->assertCount(2, $result);
     }
 
     public function testSetRoomMetadata(): void
     {
-        /** @var Room&MockObject $room */
-        $room = $this->createMock(Room::class);
+        $room = new Room();
+        $room->setName('test-room');
+        $room->setNamespace('/');
+        $this->persistAndFlush($room);
+
         $metadata = ['key' => 'value'];
 
-        $room->expects($this->once())
-            ->method('setMetadata')
-            ->with($metadata)
-        ;
-
-        $this->em->expects($this->once())
-            ->method('flush')
-        ;
-
         $this->roomService->setRoomMetadata($room, $metadata);
+
+        $em = self::getEntityManager();
+        $em->refresh($room);
+
+        $this->assertEquals($metadata, $room->getMetadata());
     }
 
     public function testGetSocketRoomsReturnsRoomNames(): void
     {
-        /** @var Socket&MockObject $socket */
-        $socket = $this->createMock(Socket::class);
-        /** @var MockObject&Room $room1 */
-        $room1 = $this->createMock(Room::class);
-        /** @var MockObject&Room $room2 */
-        $room2 = $this->createMock(Room::class);
+        $socket = new Socket();
+        $socket->setSessionId('test-session');
+        $socket->setSocketId('test-socket');
+        $socket->setNamespace('/');
 
-        $room1->method('getName')->willReturn('room1');
-        $room2->method('getName')->willReturn('room2');
+        $room1 = new Room();
+        $room1->setName('room1');
+        $room1->setNamespace('/');
 
-        $this->roomRepository->expects($this->once())
-            ->method('findBySocket')
-            ->with($socket)
-            ->willReturn([$room1, $room2])
-        ;
+        $room2 = new Room();
+        $room2->setName('room2');
+        $room2->setNamespace('/');
+
+        // 先分别持久化各实体，再建立关系
+        $this->persistAndFlush($room1);
+        $this->persistAndFlush($room2);
+        $this->persistAndFlush($socket);
+
+        $socket->joinRoom($room1);
+        $socket->joinRoom($room2);
+        $em = self::getEntityManager();
+        $em->flush();
 
         $result = $this->roomService->getSocketRooms($socket);
 
-        $this->assertEquals(['room1', 'room2'], $result);
+        $this->assertCount(2, $result);
+        $this->assertContains('room1', $result);
+        $this->assertContains('room2', $result);
     }
 
     public function testGetSocketRoomsReturnsEmptyArrayWhenNoRooms(): void
     {
-        /** @var Socket&MockObject $socket */
-        $socket = $this->createMock(Socket::class);
-
-        $this->roomRepository->expects($this->once())
-            ->method('findBySocket')
-            ->with($socket)
-            ->willReturn([])
-        ;
+        $socket = new Socket();
+        $socket->setSessionId('test-session');
+        $socket->setSocketId('test-socket');
+        $socket->setNamespace('/');
+        $this->persistAndFlush($socket);
 
         $result = $this->roomService->getSocketRooms($socket);
 

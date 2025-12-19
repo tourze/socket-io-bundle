@@ -26,7 +26,6 @@ final class DeliveryCrudControllerTest extends AbstractEasyAdminControllerTestCa
      */
     protected function getControllerService(): AbstractCrudController
     {
-        /** @phpstan-ignore-next-line */
         return self::getService(DeliveryCrudController::class);
     }
 

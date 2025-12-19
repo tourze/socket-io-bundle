@@ -319,7 +319,7 @@ final class RoomEventSubscriberTest extends AbstractEventSubscriberTestCase
         $reflection = new \ReflectionClass(RoomEventSubscriber::class);
 
         $this->assertFalse($reflection->isAbstract());
-        $this->assertFalse($reflection->isFinal());
+        $this->assertTrue($reflection->isFinal());
         $this->assertTrue($reflection->isInstantiable());
     }
 

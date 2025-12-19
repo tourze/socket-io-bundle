@@ -31,22 +31,20 @@ final class DeliveryTest extends AbstractEntityTestCase
          * 使用匿名类替代 Socket Mock，提供测试所需的最小实现
          */
         $this->socket = new class extends Socket {
-            /** @phpstan-ignore constructor.missingParentCall */
             public function __construct()
             {
-                // 不调用父类构造器，避免初始化Doctrine Collections
-                // parent::__construct(); // 跳过父类构造器
+                // 调用父类构造器以初始化 Doctrine Collections
+                parent::__construct();
             }
         };
         /*
          * 使用匿名类替代 Message Mock，提供测试所需的最小实现
          */
         $this->message = new class extends Message {
-            /** @phpstan-ignore constructor.missingParentCall */
             public function __construct()
             {
-                // 不调用父类构造器，避免初始化Doctrine Collections
-                // parent::__construct(); // 跳过父类构造器
+                // 调用父类构造器以初始化 Doctrine Collections
+                parent::__construct();
             }
         };
     }

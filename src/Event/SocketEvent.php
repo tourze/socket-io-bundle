@@ -5,7 +5,7 @@ namespace SocketIoBundle\Event;
 use SocketIoBundle\Entity\Socket;
 use Symfony\Contracts\EventDispatcher\Event;
 
-class SocketEvent extends Event
+final class SocketEvent extends Event
 {
     /**
      * @param array<mixed> $data

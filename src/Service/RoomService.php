@@ -79,7 +79,8 @@ class RoomService
     {
         $room = $this->roomRepository->findByNameAndNamespace($roomName, $socket->getNamespace());
         if (null !== $room && $room->getSockets()->contains($socket)) {
-            $room->removeSocket($socket);
+            // 使用 Socket::leaveRoom 以正确更新 owner side (ManyToMany 由 Socket 维护)
+            $socket->leaveRoom($room);
             $this->em->flush();
 
             // 如果房间为空，删除房间
@@ -99,7 +100,8 @@ class RoomService
     {
         $rooms = $this->roomRepository->findBySocket($socket);
         foreach ($rooms as $room) {
-            $room->removeSocket($socket);
+            // 使用 Socket::leaveRoom 以正确更新 owner side (ManyToMany 由 Socket 维护)
+            $socket->leaveRoom($room);
             if ($room->getSockets()->isEmpty()) {
                 $this->em->remove($room);
             }

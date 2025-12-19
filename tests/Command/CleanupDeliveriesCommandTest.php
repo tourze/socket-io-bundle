@@ -138,7 +138,7 @@ final class CleanupDeliveriesCommandTest extends AbstractCommandTestCase
         $this->assertSame('SocketIoBundle\Command\CleanupDeliveriesCommand', $reflection->getName());
         $this->assertTrue($reflection->isSubclassOf(Command::class));
         $this->assertFalse($reflection->isAbstract());
-        $this->assertFalse($reflection->isFinal());
+        $this->assertTrue($reflection->isFinal());
     }
 
     public function testCommandNameConstant(): void

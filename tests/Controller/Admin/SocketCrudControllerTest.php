@@ -23,7 +23,6 @@ final class SocketCrudControllerTest extends AbstractEasyAdminControllerTestCase
      */
     protected function getControllerService(): AbstractCrudController
     {
-        /** @phpstan-ignore-next-line */
         return self::getService(SocketCrudController::class);
     }
 

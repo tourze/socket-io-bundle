@@ -274,7 +274,7 @@ final class SocketEventTest extends AbstractEventTestCase
         $reflection = new \ReflectionClass(SocketEvent::class);
 
         $this->assertFalse($reflection->isAbstract());
-        $this->assertFalse($reflection->isFinal());
+        $this->assertTrue($reflection->isFinal());
         $this->assertTrue($reflection->isInstantiable());
     }
 

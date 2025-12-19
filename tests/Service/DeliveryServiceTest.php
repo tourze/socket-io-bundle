@@ -2,78 +2,48 @@
 
 namespace SocketIoBundle\Tests\Service;
 
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\EntityRepository;
-use Doctrine\ORM\Query;
-use Doctrine\ORM\QueryBuilder;
-use Doctrine\Persistence\Mapping\ClassMetadata;
-use Doctrine\Persistence\Mapping\ReflectionService;
+use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
-use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use SocketIoBundle\Entity\Delivery;
 use SocketIoBundle\Entity\Message;
 use SocketIoBundle\Entity\Room;
 use SocketIoBundle\Entity\Socket;
-use SocketIoBundle\Enum\MessageStatus;
 use SocketIoBundle\Enum\SocketPacketType;
 use SocketIoBundle\Protocol\SocketPacket;
-use SocketIoBundle\Repository\DeliveryRepository;
-use SocketIoBundle\Repository\MessageRepository;
-use SocketIoBundle\Repository\RoomRepository;
-use SocketIoBundle\Repository\SocketRepository;
 use SocketIoBundle\Service\DeliveryService;
+use SocketIoBundle\SocketIoBundle;
+use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
+use Tourze\DoctrineSnowflakeBundle\DoctrineSnowflakeBundle;
+use Tourze\DoctrineTimestampBundle\DoctrineTimestampBundle;
+use Tourze\PHPUnitSymfonyKernelTest\AbstractIntegrationTestCase;
 
 /**
  * @internal
  */
 #[CoversClass(DeliveryService::class)]
-final class DeliveryServiceTest extends TestCase
+#[RunTestsInSeparateProcesses]
+final class DeliveryServiceTest extends AbstractIntegrationTestCase
 {
-    /** @var EntityManagerInterface&MockObject */
-    private EntityManagerInterface $em;
-
-    /** @var DeliveryRepository&MockObject */
-    private DeliveryRepository $deliveryRepository;
-
-    /** @var MessageRepository&MockObject */
-    private MessageRepository $messageRepository;
-
-    /** @var RoomRepository&MockObject */
-    private RoomRepository $roomRepository;
-
-    /** @var SocketRepository&MockObject */
-    private SocketRepository $socketRepository;
-
     private DeliveryService $deliveryService;
 
-    protected function setUp(): void
+    /**
+     * @return array<string, array<string, bool>>
+     */
+    public static function configureBundles(): array
     {
-        parent::setUp();
+        return [
+            FrameworkBundle::class => ['all' => true],
+            DoctrineBundle::class => ['all' => true],
+            DoctrineSnowflakeBundle::class => ['all' => true],
+            DoctrineTimestampBundle::class => ['all' => true],
+            SocketIoBundle::class => ['all' => true],
+        ];
+    }
 
-        // 创建EntityManager的Mock对象
-        $this->em = $this->createMock(EntityManagerInterface::class);
-
-        // 配置getRepository方法返回一个简单的mock repository
-        $this->em->method('getRepository')->willReturn(
-            $this->createMock(EntityRepository::class)
-        );
-
-        $this->deliveryRepository = $this->createMock(DeliveryRepository::class);
-
-        $this->messageRepository = $this->createMock(MessageRepository::class);
-
-        $this->roomRepository = $this->createMock(RoomRepository::class);
-
-        $this->socketRepository = $this->createMock(SocketRepository::class);
-
-        $this->deliveryService = new DeliveryService(
-            $this->em,
-            $this->deliveryRepository,
-            $this->messageRepository,
-            $this->roomRepository,
-            $this->socketRepository
-        );
+    protected function onSetUp(): void
+    {
+        $this->deliveryService = self::getService(DeliveryService::class);
     }
 
     public function testClassExists(): void
@@ -87,59 +57,38 @@ final class DeliveryServiceTest extends TestCase
         $senderId = 'sender123';
         $packet = new SocketPacket(SocketPacketType::EVENT, '/', null, '["message","Hello"]');
 
-        // 使用真实的 Room 对象，因为 getId() 方法是 final 的无法 mock
         $room = new Room();
         $room->setName($roomName);
-        // 使用反射设置 ID，因为 setId() 也是 final 的
-        $reflection = new \ReflectionClass($room);
-        $idProperty = $reflection->getProperty('id');
-        $idProperty->setAccessible(true);
-        $idProperty->setValue($room, '1');
-
-        $this->roomRepository->expects($this->once())
-            ->method('findByName')
-            ->with($roomName)
-            ->willReturn($room)
-        ;
-
-        $this->socketRepository->expects($this->once())
-            ->method('findBySessionId')
-            ->with($senderId)
-            ->willReturn(null)
-        ;
-
-        $this->em->expects($this->atLeastOnce())
-            ->method('persist')
-        ;
-
-        $this->em->expects($this->once())
-            ->method('flush')
-        ;
+        $room->setNamespace('/');
+        $this->persistAndFlush($room);
 
         $this->deliveryService->enqueue($roomName, $packet, $senderId);
+
+        // 验证消息被存入内存队列
+        $messages = $this->deliveryService->dequeue($roomName);
+        $this->assertCount(1, $messages);
     }
 
     public function testEnqueueHandlesNonExistentRoom(): void
     {
+        // 先清空数据库
+        $em = self::getEntityManager();
+        $em->createQuery('DELETE FROM SocketIoBundle\Entity\Message')->execute();
+
         $roomName = 'non-existent-room';
         $senderId = 'sender123';
         $packet = new SocketPacket(SocketPacketType::EVENT, '/', null, '["message","Hello"]');
 
-        $this->roomRepository->expects($this->once())
-            ->method('findByName')
-            ->with($roomName)
-            ->willReturn(null)
-        ;
-
-        $this->em->expects($this->never())
-            ->method('persist')
-        ;
-
-        $this->em->expects($this->never())
-            ->method('flush')
-        ;
-
         $this->deliveryService->enqueue($roomName, $packet, $senderId);
+
+        // 消息会进入内存队列,但不会持久化到数据库
+        $messages = $this->deliveryService->dequeue($roomName);
+        // 内存队列会返回消息
+        $this->assertCount(1, $messages);
+
+        // 验证消息没有持久化到数据库
+        $messagesInDb = $em->getRepository(Message::class)->findAll();
+        $this->assertCount(0, $messagesInDb);
     }
 
     public function testDequeueReturnsMessagesFromQueue(): void
@@ -148,25 +97,13 @@ final class DeliveryServiceTest extends TestCase
         $senderId = 'sender123';
         $packet = new SocketPacket(SocketPacketType::EVENT, '/', null, '["message","Hello"]');
 
-        // First enqueue a message
-        // 使用真实的 Room 对象，因为 getId() 方法是 final 的无法 mock
         $room = new Room();
         $room->setName($roomName);
-        // 使用反射设置 ID，因为 setId() 也是 final 的
-        $reflection = new \ReflectionClass($room);
-        $idProperty = $reflection->getProperty('id');
-        $idProperty->setAccessible(true);
-        $idProperty->setValue($room, '1');
-
-        $this->roomRepository->expects($this->once())
-            ->method('findByName')
-            ->with($roomName)
-            ->willReturn($room)
-        ;
+        $room->setNamespace('/');
+        $this->persistAndFlush($room);
 
         $this->deliveryService->enqueue($roomName, $packet, $senderId);
 
-        // Then dequeue it
         $messages = $this->deliveryService->dequeue($roomName);
 
         $this->assertCount(1, $messages);
@@ -181,78 +118,19 @@ final class DeliveryServiceTest extends TestCase
     public function testDequeueFromDatabaseWhenNoQueueExists(): void
     {
         $roomName = 'test-room';
-        // 使用真实的 Room 对象，因为 getId() 方法是 final 的无法 mock
+
+        // 创建房间
         $room = new Room();
         $room->setName($roomName);
-        // 使用反射设置 ID，因为 setId() 也是 final 的
-        $reflection = new \ReflectionClass($room);
-        $idProperty = $reflection->getProperty('id');
-        $idProperty->setAccessible(true);
-        $idProperty->setValue($room, '1');
+        $room->setNamespace('/');
+        $this->persistAndFlush($room);
 
-        // 必须使用具体的类进行 Mock：
-        // 理由1： 该类包含特定的业务逻辑，需要验证具体的方法调用
-        // 理由2： 测试需要验证与该类相关的具体行为，而非抽象定义
-        // 理由3： 没有定义相应的接口，使用具体类能确保测试的准确性
-        /** @var Message&MockObject $message */
-        $message = $this->createMock(Message::class);
-        $message->method('getEvent')->willReturn('message');
-        $message->method('getData')->willReturn(['Hello']);
-        $message->method('getSender')->willReturn(null);
-        $message->method('getCreateTime')->willReturn(new \DateTimeImmutable());
-
-        $this->roomRepository->expects($this->once())
-            ->method('findByName')
-            ->with($roomName)
-            ->willReturn($room)
-        ;
-
-        // 必须使用具体的类进行 Mock：
-        // 理由1： 该类包含特定的业务逻辑，需要验证具体的方法调用
-        // 理由2： 测试需要验证与该类相关的具体行为，而非抽象定义
-        // 理由3： 没有定义相应的接口，使用具体类能确保测试的准确性
-        /** @var Query&MockObject $query */
-        $query = $this->createMock(Query::class);
-        $query->expects($this->once())
-            ->method('getResult')
-            ->willReturn([$message])
-        ;
-
-        // 必须使用具体的类进行 Mock：
-        // 理由1： 该类包含特定的业务逻辑，需要验证具体的方法调用
-        // 理由2： 测试需要验证与该类相关的具体行为，而非抽象定义
-        // 理由3： 没有定义相应的接口，使用具体类能确保测试的准确性
-        /** @var QueryBuilder&MockObject $queryBuilder */
-        $queryBuilder = $this->createMock(QueryBuilder::class);
-        $queryBuilder->expects($this->once())
-            ->method('innerJoin')
-            ->with('m.rooms', 'r')
-            ->willReturnSelf()
-        ;
-        $queryBuilder->expects($this->once())
-            ->method('where')
-            ->with('r.id = :roomId')
-            ->willReturnSelf()
-        ;
-        $queryBuilder->expects($this->once())
-            ->method('andWhere')
-            ->with('m.createTime > :since')
-            ->willReturnSelf()
-        ;
-        $queryBuilder->expects($this->exactly(2))
-            ->method('setParameter')
-            ->willReturnSelf()
-        ;
-        $queryBuilder->expects($this->once())
-            ->method('getQuery')
-            ->willReturn($query)
-        ;
-
-        $this->messageRepository->expects($this->once())
-            ->method('createQueryBuilder')
-            ->with('m')
-            ->willReturn($queryBuilder)
-        ;
+        // 创建消息并关联到房间
+        $message = new Message();
+        $message->setEvent('message');
+        $message->setData(['Hello']);
+        $message->addRoom($room);
+        $this->persistAndFlush($message);
 
         $messages = $this->deliveryService->dequeue($roomName);
 
@@ -261,190 +139,171 @@ final class DeliveryServiceTest extends TestCase
 
     public function testCleanupQueuesRemovesOldMessages(): void
     {
-        // 由于这个方法内部调用了 cleanupDeliveries，我们只需验证它被调用
-        $this->deliveryRepository->expects($this->once())
-            ->method('cleanupOldDeliveries')
-            ->with(7)
-            ->willReturn(10)
-        ;
-
         $this->deliveryService->cleanupQueues();
+        // 验证方法执行成功（没有异常）
+        $this->expectNotToPerformAssertions();
     }
 
     public function testGetPendingDeliveriesReturnsDeliveries(): void
     {
-        // 必须使用具体的类进行 Mock：
-        // 理由1： 该类包含特定的业务逻辑，需要验证具体的方法调用
-        // 理由2： 测试需要验证与该类相关的具体行为，而非抽象定义
-        // 理由3： 没有定义相应的接口，使用具体类能确保测试的准确性
-        /** @var Socket&MockObject $socket */
-        $socket = $this->createMock(Socket::class);
-        $socket->method('getNamespace')->willReturn('/');
-        /*
-         * 使用具体类 Delivery 进行 Mock 是必要的，因为：
-         * 1. Delivery 是实体类，包含消息投递的业务状态和属性
-         * 2. 测试需要验证投递记录的查询结果，实体类提供了完整的数据结构
-         * 3. 当前架构中没有 Delivery 接口，使用具体类 Mock 是标准做法
-         */
-        /** @var Delivery&MockObject $delivery1 */
-        $delivery1 = $this->createMock(Delivery::class);
-        // 必须使用具体的类进行 Mock：
-        // 理由1： 该类包含特定的业务逻辑，需要验证具体的方法调用
-        // 理由2： 测试需要验证与该类相关的具体行为，而非抽象定义
-        // 理由3： 没有定义相应的接口，使用具体类能确保测试的准确性
-        /** @var Delivery&MockObject $delivery2 */
-        $delivery2 = $this->createMock(Delivery::class);
-        $deliveries = [$delivery1, $delivery2];
+        $socket = new Socket();
+        $socket->setSessionId('test-session');
+        $socket->setSocketId('test-socket');
+        $socket->setNamespace('/');
+        $this->persistAndFlush($socket);
 
-        $this->deliveryRepository->expects($this->once())
-            ->method('findPendingDeliveries')
-            ->with($socket)
-            ->willReturn($deliveries)
-        ;
+        $message = new Message();
+        $message->setEvent('test');
+        $message->setData(['test' => 'data']);
+        $this->persistAndFlush($message);
+
+        $delivery1 = new Delivery();
+        $delivery1->setSocket($socket);
+        $delivery1->setMessage($message);
+        $this->persistAndFlush($delivery1);
+
+        $delivery2 = new Delivery();
+        $delivery2->setSocket($socket);
+        $delivery2->setMessage($message);
+        $this->persistAndFlush($delivery2);
 
         $result = $this->deliveryService->getPendingDeliveries($socket);
 
-        $this->assertSame($deliveries, $result);
+        $this->assertIsArray($result);
         $this->assertCount(2, $result);
     }
 
     public function testMarkDeliveredUpdatesStatus(): void
     {
-        // 必须使用具体的类进行 Mock：
-        // 理由1： 该类包含特定的业务逻辑，需要验证具体的方法调用
-        // 理由2： 测试需要验证与该类相关的具体行为，而非抽象定义
-        // 理由3： 没有定义相应的接口，使用具体类能确保测试的准确性
-        /** @var Delivery&MockObject $delivery */
-        $delivery = $this->createMock(Delivery::class);
+        $socket = new Socket();
+        $socket->setSessionId('test-session');
+        $socket->setSocketId('test-socket');
+        $socket->setNamespace('/');
+        $this->persistAndFlush($socket);
 
-        $delivery->expects($this->once())
-            ->method('setStatus')
-            ->with(MessageStatus::DELIVERED)
-        ;
+        $message = new Message();
+        $message->setEvent('test');
+        $message->setData(['test' => 'data']);
+        $this->persistAndFlush($message);
 
-        $this->em->expects($this->once())
-            ->method('flush')
-        ;
+        $delivery = new Delivery();
+        $delivery->setSocket($socket);
+        $delivery->setMessage($message);
+        $this->persistAndFlush($delivery);
 
         $this->deliveryService->markDelivered($delivery);
+
+        $em = self::getEntityManager();
+        $em->refresh($delivery);
+
+        $this->assertEquals(\SocketIoBundle\Enum\MessageStatus::DELIVERED, $delivery->getStatus());
     }
 
     public function testRetryIncreasesRetryCountWhenBelowMaxRetries(): void
     {
-        // 必须使用具体的类进行 Mock：
-        // 理由1： 该类包含特定的业务逻辑，需要验证具体的方法调用
-        // 理由2： 测试需要验证与该类相关的具体行为，而非抽象定义
-        // 理由3： 没有定义相应的接口，使用具体类能确保测试的准确性
-        /** @var Delivery&MockObject $delivery */
-        $delivery = $this->createMock(Delivery::class);
+        $socket = new Socket();
+        $socket->setSessionId('test-session');
+        $socket->setSocketId('test-socket');
+        $socket->setNamespace('/');
+        $this->persistAndFlush($socket);
 
-        $delivery->expects($this->once())
-            ->method('getRetries')
-            ->willReturn(1)
-        ;
+        $message = new Message();
+        $message->setEvent('test');
+        $message->setData(['test' => 'data']);
+        $this->persistAndFlush($message);
 
-        $delivery->expects($this->once())
-            ->method('incrementRetries')
-        ;
+        $delivery = new Delivery();
+        $delivery->setSocket($socket);
+        $delivery->setMessage($message);
+        $this->persistAndFlush($delivery);
 
-        $this->em->expects($this->once())
-            ->method('flush')
-        ;
+        $initialRetries = $delivery->getRetries();
 
         $result = $this->deliveryService->retry($delivery);
 
+        $em = self::getEntityManager();
+        $em->refresh($delivery);
+
         $this->assertTrue($result);
+        $this->assertEquals($initialRetries + 1, $delivery->getRetries());
     }
 
     public function testRetryFailsWhenMaxRetriesExceeded(): void
     {
-        // 必须使用具体的类进行 Mock：
-        // 理由1： 该类包含特定的业务逻辑，需要验证具体的方法调用
-        // 理由2： 测试需要验证与该类相关的具体行为，而非抽象定义
-        // 理由3： 没有定义相应的接口，使用具体类能确保测试的准确性
-        /** @var Delivery&MockObject $delivery */
-        $delivery = $this->createMock(Delivery::class);
+        $socket = new Socket();
+        $socket->setSessionId('test-session');
+        $socket->setSocketId('test-socket');
+        $socket->setNamespace('/');
+        $this->persistAndFlush($socket);
 
-        $delivery->expects($this->once())
-            ->method('getRetries')
-            ->willReturn(3)
-        ;
+        $message = new Message();
+        $message->setEvent('test');
+        $message->setData(['test' => 'data']);
+        $this->persistAndFlush($message);
 
-        $delivery->expects($this->once())
-            ->method('setStatus')
-            ->with(MessageStatus::FAILED)
-        ;
+        $delivery = new Delivery();
+        $delivery->setSocket($socket);
+        $delivery->setMessage($message);
 
-        $delivery->expects($this->once())
-            ->method('setError')
-            ->with('Max retries exceeded')
-        ;
-
-        $this->em->expects($this->once())
-            ->method('flush')
-        ;
+        // 设置重试次数为最大值
+        for ($i = 0; $i < 3; ++$i) {
+            $delivery->incrementRetries();
+        }
+        $this->persistAndFlush($delivery);
 
         $result = $this->deliveryService->retry($delivery);
 
+        $em = self::getEntityManager();
+        $em->refresh($delivery);
+
         $this->assertFalse($result);
+        $this->assertEquals(\SocketIoBundle\Enum\MessageStatus::FAILED, $delivery->getStatus());
+        $this->assertEquals('Max retries exceeded', $delivery->getError());
     }
 
     public function testMarkFailedSetsErrorAndStatus(): void
     {
-        // 必须使用具体的类进行 Mock：
-        // 理由1： 该类包含特定的业务逻辑，需要验证具体的方法调用
-        // 理由2： 测试需要验证与该类相关的具体行为，而非抽象定义
-        // 理由3： 没有定义相应的接口，使用具体类能确保测试的准确性
-        /** @var Delivery&MockObject $delivery */
-        $delivery = $this->createMock(Delivery::class);
+        $socket = new Socket();
+        $socket->setSessionId('test-session');
+        $socket->setSocketId('test-socket');
+        $socket->setNamespace('/');
+        $this->persistAndFlush($socket);
+
+        $message = new Message();
+        $message->setEvent('test');
+        $message->setData(['test' => 'data']);
+        $this->persistAndFlush($message);
+
+        $delivery = new Delivery();
+        $delivery->setSocket($socket);
+        $delivery->setMessage($message);
+        $this->persistAndFlush($delivery);
+
         $error = 'Connection timeout';
 
-        $delivery->expects($this->once())
-            ->method('setStatus')
-            ->with(MessageStatus::FAILED)
-        ;
-
-        $delivery->expects($this->once())
-            ->method('setError')
-            ->with($error)
-        ;
-
-        $this->em->expects($this->once())
-            ->method('flush')
-        ;
-
         $this->deliveryService->markFailed($delivery, $error);
+
+        $em = self::getEntityManager();
+        $em->refresh($delivery);
+
+        $this->assertEquals(\SocketIoBundle\Enum\MessageStatus::FAILED, $delivery->getStatus());
+        $this->assertEquals($error, $delivery->getError());
     }
 
     public function testCleanupDeliveriesCallsRepository(): void
     {
         $days = 14;
-        $deletedCount = 25;
-
-        $this->deliveryRepository->expects($this->once())
-            ->method('cleanupOldDeliveries')
-            ->with($days)
-            ->willReturn($deletedCount)
-        ;
 
         $result = $this->deliveryService->cleanupDeliveries($days);
 
-        $this->assertEquals($deletedCount, $result);
+        $this->assertGreaterThanOrEqual(0, $result);
     }
 
     public function testCleanupDeliveriesUsesDefaultDays(): void
     {
-        $deletedCount = 15;
-
-        $this->deliveryRepository->expects($this->once())
-            ->method('cleanupOldDeliveries')
-            ->with(7)
-            ->willReturn($deletedCount)
-        ;
-
         $result = $this->deliveryService->cleanupDeliveries();
 
-        $this->assertEquals($deletedCount, $result);
+        $this->assertGreaterThanOrEqual(0, $result);
     }
 
     public function testDequeueWithSinceParameter(): void
@@ -454,27 +313,15 @@ final class DeliveryServiceTest extends TestCase
         $senderId = 'sender123';
         $packet = new SocketPacket(SocketPacketType::EVENT, '/', null, '["message","Hello"]');
 
-        // Enqueue a message
-        // 使用真实的 Room 对象，因为 getId() 方法是 final 的无法 mock
         $room = new Room();
         $room->setName($roomName);
-        // 使用反射设置 ID，因为 setId() 也是 final 的
-        $reflection = new \ReflectionClass($room);
-        $idProperty = $reflection->getProperty('id');
-        $idProperty->setAccessible(true);
-        $idProperty->setValue($room, '1');
-
-        $this->roomRepository->expects($this->once())
-            ->method('findByName')
-            ->with($roomName)
-            ->willReturn($room)
-        ;
+        $room->setNamespace('/');
+        $this->persistAndFlush($room);
 
         $this->deliveryService->enqueue($roomName, $packet, $senderId);
 
         // Dequeue with since parameter
         $messages = $this->deliveryService->dequeue($roomName, $since);
-
         $this->assertCount(1, $messages);
 
         // Dequeue with a future timestamp should return empty

@@ -7,7 +7,7 @@ use SocketIoBundle\Service\MessageService;
 use SocketIoBundle\Service\RoomService;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
-class RoomEventSubscriber implements EventSubscriberInterface
+final class RoomEventSubscriber implements EventSubscriberInterface
 {
     public function __construct(
         private readonly RoomService $roomService,

@@ -25,7 +25,6 @@ final class MessageCrudControllerTest extends AbstractEasyAdminControllerTestCas
      */
     protected function getControllerService(): AbstractCrudController
     {
-        /** @phpstan-ignore-next-line */
         return self::getService(MessageCrudController::class);
     }
 

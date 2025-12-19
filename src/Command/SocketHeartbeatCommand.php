@@ -20,7 +20,7 @@ use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
     description: '执行Socket.IO心跳检查和资源清理'
 )]
 #[Autoconfigure(public: true)]
-class SocketHeartbeatCommand extends Command
+final class SocketHeartbeatCommand extends Command
 {
     public const NAME = 'socket-io:heartbeat';
 

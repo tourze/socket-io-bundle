@@ -53,9 +53,6 @@ final class PollingTransportTest extends TestCase
 
         $this->entityManager = $this->createMock(EntityManagerInterface::class);
 
-        $this->socketRepository = $this->createMock(SocketRepository::class);
-        $this->socketRepository->method('findBySessionId')->willReturn(null);
-
         $this->deliveryService = $this->createMock(DeliveryService::class);
         $this->deliveryService->method('getPendingDeliveries')->willReturn([]);
 
@@ -95,6 +92,20 @@ final class PollingTransportTest extends TestCase
          */
         $this->socket = $this->createMock(Socket::class);
         $this->socket->method('getSocketId')->willReturn('socket-123');
+
+        // 创建默认的 SocketRepository，返回 null(大部分测试会覆盖此行为)
+        $mockRegistry = $this->createMock(ManagerRegistry::class);
+        $this->socketRepository = new class($mockRegistry) extends SocketRepository {
+            public function __construct(ManagerRegistry $registry)
+            {
+                parent::__construct($registry);
+            }
+
+            public function findBySessionId(string $sessionId): ?Socket
+            {
+                return null;
+            }
+        };
 
         $this->transport = new PollingTransport(
             $this->entityManager,
@@ -219,9 +230,9 @@ final class PollingTransportTest extends TestCase
             }
         };
 
-        // 为这个测试创建新的 transport，使用能找到 socket 的 repository
-        $mockManagerRegistry = $this->createMock(ManagerRegistry::class);
-        $socketRepository = new class($socket, $mockManagerRegistry) extends SocketRepository {
+        // 为这个测试创建新的 transport,使用能找到 socket 的 repository
+        $mockRegistry = $this->createMock(ManagerRegistry::class);
+        $socketRepository = new class($socket, $mockRegistry) extends SocketRepository {
             private Socket $socket;
 
             public function __construct(Socket $socket, ManagerRegistry $registry)
@@ -430,8 +441,8 @@ final class PollingTransportTest extends TestCase
             }
         };
 
-        $mockManagerRegistry = $this->createMock(ManagerRegistry::class);
-        $this->socketRepository = new class($socket, $mockManagerRegistry) extends SocketRepository {
+        $mockRegistry = $this->createMock(ManagerRegistry::class);
+        $this->socketRepository = new class($socket, $mockRegistry) extends SocketRepository {
             private Socket $socket;
 
             public function __construct(Socket $socket, ManagerRegistry $registry)
@@ -471,8 +482,8 @@ final class PollingTransportTest extends TestCase
             }
         };
 
-        $mockManagerRegistry = $this->createMock(ManagerRegistry::class);
-        $this->socketRepository = new class($socket, $mockManagerRegistry) extends SocketRepository {
+        $mockRegistry = $this->createMock(ManagerRegistry::class);
+        $this->socketRepository = new class($socket, $mockRegistry) extends SocketRepository {
             private Socket $socket;
 
             public function __construct(Socket $socket, ManagerRegistry $registry)
@@ -517,8 +528,8 @@ final class PollingTransportTest extends TestCase
 
     public function testSendWithNonExistentSocket(): void
     {
-        $mockManagerRegistry = $this->createMock(ManagerRegistry::class);
-        $this->socketRepository = new class($mockManagerRegistry) extends SocketRepository {
+        $mockRegistry = $this->createMock(ManagerRegistry::class);
+        $this->socketRepository = new class($mockRegistry) extends SocketRepository {
             public function __construct(ManagerRegistry $registry)
             {
                 parent::__construct($registry);
@@ -575,8 +586,8 @@ final class PollingTransportTest extends TestCase
             }
         };
 
-        $mockManagerRegistry = $this->createMock(ManagerRegistry::class);
-        $this->socketRepository = new class($socket, $mockManagerRegistry) extends SocketRepository {
+        $mockRegistry = $this->createMock(ManagerRegistry::class);
+        $this->socketRepository = new class($socket, $mockRegistry) extends SocketRepository {
             private Socket $socket;
 
             public function __construct(Socket $socket, ManagerRegistry $registry)
@@ -705,8 +716,8 @@ final class PollingTransportTest extends TestCase
             }
         };
 
-        $mockManagerRegistry = $this->createMock(ManagerRegistry::class);
-        $this->socketRepository = new class($socket, $mockManagerRegistry) extends SocketRepository {
+        $mockRegistry = $this->createMock(ManagerRegistry::class);
+        $this->socketRepository = new class($socket, $mockRegistry) extends SocketRepository {
             private Socket $socket;
 
             public function __construct(Socket $socket, ManagerRegistry $registry)
@@ -781,8 +792,8 @@ final class PollingTransportTest extends TestCase
 
     public function testCloseWithNonExistentSocket(): void
     {
-        $mockManagerRegistry = $this->createMock(ManagerRegistry::class);
-        $this->socketRepository = new class($mockManagerRegistry) extends SocketRepository {
+        $mockRegistry = $this->createMock(ManagerRegistry::class);
+        $this->socketRepository = new class($mockRegistry) extends SocketRepository {
             public function __construct(ManagerRegistry $registry)
             {
                 parent::__construct($registry);
@@ -799,7 +810,7 @@ final class PollingTransportTest extends TestCase
         $mockMessageRepository = $this->createMock(MessageRepository::class);
         $mockRoomRepository = $this->createMock(RoomRepository::class);
         $mockSocketRepository = $this->createMock(SocketRepository::class);
-        $this->deliveryService = new class($mockEntityManagerForDeliveryService, $mockDeliveryRepository, $mockMessageRepository, $mockRoomRepository, $mockSocketRepository) extends DeliveryService {
+        $deliveryService = new class($mockEntityManagerForDeliveryService, $mockDeliveryRepository, $mockMessageRepository, $mockRoomRepository, $mockSocketRepository) extends DeliveryService {
             private int $getPendingDeliveriesCallCount = 0;
 
             public function __construct(
@@ -835,7 +846,7 @@ final class PollingTransportTest extends TestCase
         $transport = new PollingTransport(
             $this->entityManager,
             $this->socketRepository,
-            $this->deliveryService,
+            $deliveryService,
             $this->socket,
             $this->httpRequestHandler,
             $this->messageBuilder,
@@ -849,8 +860,7 @@ final class PollingTransportTest extends TestCase
         $this->assertNull($this->socketRepository->findBySessionId('session-123'));
 
         // 验证deliveryService的getPendingDeliveries没有被调用（因为socket不存在）
-        /** @phpstan-ignore-next-line */
-        $this->assertSame(0, $this->deliveryService->getGetPendingDeliveriesCallCount());
+        $this->assertSame(0, $deliveryService->getGetPendingDeliveriesCallCount());
     }
 
     public function testIsExpiredReturnsFalseForRecentPoll(): void
